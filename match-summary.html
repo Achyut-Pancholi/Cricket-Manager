@@ -9,70 +9,77 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .stats-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        .stats-table th { padding: 10px 8px; background: rgba(255,255,255,0.07); color: var(--text-muted); font-weight: 600; text-align: center; }
-        .stats-table th:first-child { text-align: left; }
-        .stats-table td { padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: center; }
-        .stats-table td:first-child { text-align: left; font-weight: 600; }
+        .stats-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        .stats-table th { padding: 9px 7px; background: rgba(255,255,255,0.06); color: var(--text-muted); font-weight: 600; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .stats-table th:first-child { text-align: left; padding-left: 12px; }
+        .stats-table td { padding: 9px 7px; border-bottom: 1px solid rgba(255,255,255,0.04); text-align: center; }
+        .stats-table td:first-child { text-align: left; padding-left: 12px; }
         .stats-table tr:last-child td { border-bottom: none; }
-        .stats-table .top-scorer { background: rgba(0,242,254,0.06); }
-        .innings-tab-bar { display: flex; gap: 8px; margin-bottom: 16px; }
-        .innings-tab { flex: 1; padding: 10px; border-radius: 8px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); font-weight: 600; cursor: pointer; text-align: center; font-size: 0.85rem; transition: all 0.2s; }
+        .top-scorer td:nth-child(2) { color: var(--primary); font-weight: 800; }
+        .innings-tab-bar { display: flex; gap: 8px; margin-bottom: 14px; }
+        .innings-tab { flex: 1; padding: 9px; border-radius: 8px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); font-weight: 600; cursor: pointer; text-align: center; font-size: 0.82rem; transition: all 0.2s; }
         .innings-tab.active { background: var(--primary-gradient); color: #000; border-color: transparent; }
-        .team-section { margin-bottom: 24px; }
-        .team-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 12px; background: rgba(255,255,255,0.04); border-radius: 10px; border-left: 3px solid var(--primary); }
-        .team-header.team-b-header { border-left-color: var(--secondary, #a78bfa); }
-        .match-result-card { background: linear-gradient(135deg, rgba(0,242,254,0.15) 0%, rgba(79,172,254,0.15) 100%); border: 1px solid rgba(0,242,254,0.3); border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px; }
-        .awards-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .award-card { background: var(--bg-card); border-radius: 12px; padding: 12px 8px; text-align: center; border: 1px solid rgba(255,255,255,0.08); }
-        .award-card .award-icon { font-size: 1.5rem; margin-bottom: 6px; }
-        .award-card .award-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        .award-card .award-name { font-size: 0.95rem; font-weight: 700; margin-top: 4px; }
-        .award-card .award-stat { font-size: 0.75rem; color: var(--text-muted); }
-        .match-select-screen { padding: 20px 0; }
-        .match-pick-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--bg-card); border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: border-color 0.2s; }
-        .match-pick-item:hover { border-color: var(--primary); }
+        .team-block { margin-bottom: 20px; }
+        .team-label-bar { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; padding: 9px 12px; border-radius: 8px 8px 0 0; }
+        .team-label-bar.batting  { background: rgba(0,242,254,0.1);  color: var(--primary); border-left: 3px solid var(--primary); }
+        .team-label-bar.bowling  { background: rgba(167,139,250,0.1); color: #a78bfa; border-left: 3px solid #a78bfa; }
+        .awards-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+        .award-card { background: var(--bg-card); border-radius: 12px; padding: 12px 6px; text-align: center; border: 1px solid rgba(255,255,255,0.07); }
+        .award-icon { font-size: 1.4rem; margin-bottom: 4px; }
+        .award-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .award-name { font-size: 0.88rem; font-weight: 700; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
+        .award-stat  { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+        .result-card { background: linear-gradient(135deg, rgba(0,242,254,0.12), rgba(79,172,254,0.12)); border: 1px solid rgba(0,242,254,0.25); border-radius: 14px; padding: 16px; text-align: center; margin-bottom: 14px; }
+        .scores-row  { display: flex; gap: 8px; margin-bottom: 14px; }
+        .score-box   { flex: 1; background: var(--bg-card); border-radius: 12px; padding: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.07); }
+        .score-box .s-team { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px; }
+        .score-box .s-num  { font-size: 1.6rem; font-weight: 800; }
+        .score-box .s-ov   { font-size: 0.72rem; color: var(--text-muted); }
+        /* Match picker */
+        .match-pick-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--bg-card); border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.07); cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+        .match-pick-item:hover { border-color: var(--primary); background: rgba(0,242,254,0.06); }
     </style>
 </head>
 <body>
     <div class="app-container">
         <header class="top-nav">
             <a href="index.html" class="icon-btn"><i class="fa-solid fa-home"></i></a>
-            <div class="brand"><h2>Match Stats</h2></div>
+            <div class="brand"><h2 id="pageTitle">Match Stats</h2></div>
             <div></div>
         </header>
 
-        <main class="content fade-in" id="mainContent">
-            <!-- Match Selection Screen -->
-            <div id="matchSelectScreen" class="match-select-screen">
-                <p class="text-muted mb-4" style="font-size:0.9rem;">Select a match to view full scorecard</p>
+        <main class="content fade-in" style="padding-bottom: 30px;">
+
+            <!-- ── Match Picker Screen ── -->
+            <div id="matchSelectScreen">
+                <p class="text-muted mb-4" style="font-size:0.88rem;">Select a match to view its scorecard</p>
                 <div id="matchPickList"><div class="loading-spinner"></div></div>
             </div>
 
-            <!-- Stats Screen (hidden until match selected) -->
-            <div id="statsScreen" style="display:none; padding-bottom: 30px;">
-                <button id="backToListBtn" class="btn btn-secondary mb-4" style="padding: 8px 16px; font-size: 0.85rem;">
+            <!-- ── Stats Screen (hidden until match selected) ── -->
+            <div id="statsScreen" style="display:none;">
+                <button id="backToListBtn" style="background:none;border:none;color:var(--text-muted);font-size:0.85rem;padding:0;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
                     <i class="fa-solid fa-arrow-left"></i> All Matches
                 </button>
 
-                <!-- Result Card -->
-                <div class="match-result-card" id="resultCard">
-                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;" id="matchName"></div>
-                    <div style="font-size: 1.4rem; font-weight: 800; margin: 8px 0;" id="resultText"></div>
-                    <div style="font-size: 0.9rem; color: var(--text-muted);" id="resultSubtext"></div>
+                <!-- Result -->
+                <div class="result-card">
+                    <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;" id="matchName"></div>
+                    <div style="font-size:1.25rem;font-weight:800;margin:6px 0;" id="resultText">—</div>
+                    <div style="font-size:0.82rem;color:var(--text-muted);" id="resultSubtext"></div>
                 </div>
 
-                <!-- Scores Row -->
-                <div class="d-flex" style="gap: 10px; margin-bottom: 20px;">
-                    <div class="secondary-card" style="flex:1; text-align:center; padding: 16px;">
-                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;" id="inn1TeamLabel">Team A</div>
-                        <div style="font-size: 1.8rem; font-weight: 800;" id="inn1Score">—</div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);" id="inn1Overs"></div>
+                <!-- Scores -->
+                <div class="scores-row">
+                    <div class="score-box">
+                        <div class="s-team" id="inn1TeamLabel">Innings 1</div>
+                        <div class="s-num"  id="inn1Score">—</div>
+                        <div class="s-ov"   id="inn1Overs"></div>
                     </div>
-                    <div class="secondary-card" style="flex:1; text-align:center; padding: 16px;">
-                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;" id="inn2TeamLabel">Team B</div>
-                        <div style="font-size: 1.8rem; font-weight: 800;" id="inn2Score">—</div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);" id="inn2Overs"></div>
+                    <div class="score-box">
+                        <div class="s-team" id="inn2TeamLabel">Innings 2</div>
+                        <div class="s-num"  id="inn2Score">—</div>
+                        <div class="s-ov"   id="inn2Overs"></div>
                     </div>
                 </div>
 
@@ -86,13 +93,13 @@
                     </div>
                     <div class="award-card">
                         <div class="award-icon">🏏</div>
-                        <div class="award-label">Best Batsman</div>
+                        <div class="award-label">Best Bat</div>
                         <div class="award-name" style="color:#FCD34D;" id="bestBatName">—</div>
                         <div class="award-stat" id="bestBatStat"></div>
                     </div>
                     <div class="award-card">
                         <div class="award-icon">🎯</div>
-                        <div class="award-label">Best Bowler</div>
+                        <div class="award-label">Best Bowl</div>
                         <div class="award-name" style="color:#A78BFA;" id="bestBowlName">—</div>
                         <div class="award-stat" id="bestBowlStat"></div>
                     </div>
@@ -100,47 +107,73 @@
 
                 <!-- Innings Tabs -->
                 <div class="innings-tab-bar">
-                    <div class="innings-tab active" id="tab1" onclick="switchInningsTab(1)">Innings 1</div>
-                    <div class="innings-tab" id="tab2" onclick="switchInningsTab(2)">Innings 2</div>
+                    <div class="innings-tab active" id="tab1" onclick="switchTab(1)">Innings 1</div>
+                    <div class="innings-tab" id="tab2" onclick="switchTab(2)" style="opacity:0.4;pointer-events:none;">Innings 2</div>
                 </div>
 
-                <!-- Innings 1 Stats -->
+                <!-- Innings 1 -->
                 <div id="innings1Stats">
-                    <div class="team-section">
-                        <div class="team-header"><i class="fa-solid fa-baseball-bat-ball text-primary"></i><div><div style="font-weight:700;" id="inn1BatTeam">Team A</div><div style="font-size:0.75rem;color:var(--text-muted);">Batting</div></div></div>
-                        <div class="secondary-card" style="padding:0; overflow:hidden;">
-                            <div style="overflow-x:auto;"><table class="stats-table"><thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody id="inn1BatBody"></tbody></table></div>
+                    <div class="team-block">
+                        <div class="team-label-bar batting" id="inn1BatTeam">Batting</div>
+                        <div class="secondary-card" style="padding:0;border-radius:0 0 10px 10px;overflow:hidden;">
+                            <div style="overflow-x:auto;">
+                                <table class="stats-table">
+                                    <thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead>
+                                    <tbody id="inn1BatBody"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                    <div class="team-section">
-                        <div class="team-header team-b-header"><i class="fa-solid fa-baseball" style="color:#a78bfa;"></i><div><div style="font-weight:700;" id="inn1BowlTeam">Team B</div><div style="font-size:0.75rem;color:var(--text-muted);">Bowling</div></div></div>
-                        <div class="secondary-card" style="padding:0; overflow:hidden;">
-                            <div style="overflow-x:auto;"><table class="stats-table"><thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead><tbody id="inn1BowlBody"></tbody></table></div>
+                    <div class="team-block">
+                        <div class="team-label-bar bowling" id="inn1BowlTeam">Bowling</div>
+                        <div class="secondary-card" style="padding:0;border-radius:0 0 10px 10px;overflow:hidden;">
+                            <div style="overflow-x:auto;">
+                                <table class="stats-table">
+                                    <thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead>
+                                    <tbody id="inn1BowlBody"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Innings 2 Stats -->
+                <!-- Innings 2 -->
                 <div id="innings2Stats" style="display:none;">
-                    <div class="team-section">
-                        <div class="team-header team-b-header"><i class="fa-solid fa-baseball-bat-ball" style="color:#a78bfa;"></i><div><div style="font-weight:700;" id="inn2BatTeam">Team B</div><div style="font-size:0.75rem;color:var(--text-muted);">Batting</div></div></div>
-                        <div class="secondary-card" style="padding:0; overflow:hidden;">
-                            <div style="overflow-x:auto;"><table class="stats-table"><thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody id="inn2BatBody"></tbody></table></div>
+                    <div class="team-block">
+                        <div class="team-label-bar batting" id="inn2BatTeam">Batting</div>
+                        <div class="secondary-card" style="padding:0;border-radius:0 0 10px 10px;overflow:hidden;">
+                            <div style="overflow-x:auto;">
+                                <table class="stats-table">
+                                    <thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead>
+                                    <tbody id="inn2BatBody"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                    <div class="team-section">
-                        <div class="team-header"><i class="fa-solid fa-baseball text-primary"></i><div><div style="font-weight:700;" id="inn2BowlTeam">Team A</div><div style="font-size:0.75rem;color:var(--text-muted);">Bowling</div></div></div>
-                        <div class="secondary-card" style="padding:0; overflow:hidden;">
-                            <div style="overflow-x:auto;"><table class="stats-table"><thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead><tbody id="inn2BowlBody"></tbody></table></div>
+                    <div class="team-block">
+                        <div class="team-label-bar bowling" id="inn2BowlTeam">Bowling</div>
+                        <div class="secondary-card" style="padding:0;border-radius:0 0 10px 10px;overflow:hidden;">
+                            <div style="overflow-x:auto;">
+                                <table class="stats-table">
+                                    <thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead>
+                                    <tbody id="inn2BowlBody"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
+
+        <nav class="bottom-nav">
+            <a href="index.html" class="nav-item"><i class="fa-solid fa-home"></i><span>Home</span></a>
+            <a href="live-score.html" class="nav-item"><i class="fa-solid fa-chart-simple"></i><span>Live</span></a>
+            <a href="match-summary.html" class="nav-item active"><i class="fa-solid fa-trophy"></i><span>Stats</span></a>
+        </nav>
     </div>
 
     <script>
-        function switchInningsTab(n) {
+        function switchTab(n) {
             document.getElementById('innings1Stats').style.display = n === 1 ? 'block' : 'none';
             document.getElementById('innings2Stats').style.display = n === 2 ? 'block' : 'none';
             document.getElementById('tab1').classList.toggle('active', n === 1);

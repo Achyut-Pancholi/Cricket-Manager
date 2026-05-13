@@ -53,12 +53,9 @@ const initHome = () => {
                         if (!m.matchDetails) return;
                         recentList.innerHTML += `
                             <div class="secondary-card mb-4" style="text-align: left; display: block; position: relative;">
-                                <div class="d-flex justify-between align-center" style="cursor: pointer; padding-right: 40px;" onclick="loadMatch('${key}')">
-                                    <div>
-                                        <h4 style="margin:0">${m.matchDetails.name}</h4>
-                                        <small style="color: var(--text-muted)">${m.matchDetails.overs} Overs</small>
-                                    </div>
-                                    <span class="text-primary font-weight-bold">${m.score.runs}/${m.score.wickets}</span>
+                                <div style="cursor: pointer; padding-right: 40px;" onclick="loadMatch('${key}')">
+                                    <h4 style="margin:0">${m.matchDetails.name}</h4>
+                                    <small style="color: var(--text-muted)">${m.matchDetails.overs} Overs</small>
                                 </div>
                                 <button onclick="deleteMatch(event, '${key}')" class="icon-btn text-danger" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); z-index: 10; padding: 5px;">
                                     <i class="fa-solid fa-trash"></i>
@@ -891,8 +888,15 @@ const initMatchSummary = () => {
             ? renderBowling('inn2BowlBody', inn2History, inn1Batting, players)
             : null;
 
-        // Hide innings 2 tab if not played
-        document.getElementById('tab2').style.opacity = inn2History.length > 0 ? '1' : '0.4';
+        // Enable/disable innings 2 tab
+        const tab2El = document.getElementById('tab2');
+        if (inn2History.length > 0) {
+            tab2El.style.opacity = '1';
+            tab2El.style.pointerEvents = 'auto';
+        } else {
+            tab2El.style.opacity = '0.4';
+            tab2El.style.pointerEvents = 'none';
+        }
 
         // ── Result calculation ──
         let resultText = 'In Progress';
@@ -918,11 +922,31 @@ const initMatchSummary = () => {
         document.getElementById('resultText').textContent = resultText;
         document.getElementById('resultSubtext').textContent = resultSub;
 
-        // ── Awards ──
-        // Best Batsman: highest runs across both innings
+        // ── Awards (restricted to winning team where result is known) ──
+        // Determine winning team player IDs
+        let winnerIds = null;
+        if (inn2Score && inn1Score) {
+            const target = inn1Score.runs + 1;
+            if (inn2Score.runs >= target) {
+                // inn2 batting team won — their batters + inn1 bowlers
+                winnerIds = [...inn1Bowling.map(p => p.id), ...inn1Batting.map(p => p.id)];
+                // Actually MOTM can be bat or bowl from winning side:
+                // winning batting team = inn1Bowling (they bat in inn2)
+                winnerIds = inn1Bowling.map(p => p.id);
+            } else {
+                const validBalls = inn2History.filter(b => !b.isExtra || b.extraType === 'LB').length;
+                if (Math.floor(validBalls / 6) >= parseFloat(state.matchDetails?.overs || 99)) {
+                    // inn1 batting team won
+                    winnerIds = inn1Batting.map(p => p.id);
+                }
+            }
+        }
+
+        // Best Batsman: highest runs — from winning team if known, else all
         const allBatStats = {};
         [...inn1History, ...inn2History].forEach(b => {
             if (!b.strikerId || b.isExtra || b.isWicket) return;
+            if (winnerIds && !winnerIds.includes(b.strikerId)) return;
             if (!allBatStats[b.strikerId]) allBatStats[b.strikerId] = 0;
             allBatStats[b.strikerId] += b.runs;
         });
@@ -931,10 +955,14 @@ const initMatchSummary = () => {
         document.getElementById('bestBatName').textContent = bestBat?.name || '—';
         document.getElementById('bestBatStat').textContent = bestBatId ? `${allBatStats[bestBatId]} runs` : '';
 
-        // Best Bowler: most wickets, then lowest economy
+        // Best Bowler: most wickets from winning team if known, else all
+        const winnerBowlIds = winnerIds
+            ? (inn2Score && inn2Score.runs >= inn1Score.runs + 1 ? inn1Batting.map(p => p.id) : inn1Bowling.map(p => p.id))
+            : null;
         const allBowlStats = {};
         [...inn1History, ...inn2History].forEach(b => {
             if (!b.bowlerId) return;
+            if (winnerBowlIds && !winnerBowlIds.includes(b.bowlerId)) return;
             if (!allBowlStats[b.bowlerId]) allBowlStats[b.bowlerId] = { wickets: 0, runs: 0, balls: 0 };
             if (b.isWicket && b.wicketType !== 'Run Out') allBowlStats[b.bowlerId].wickets += 1;
             if (!b.isExtra) { allBowlStats[b.bowlerId].balls += 1; allBowlStats[b.bowlerId].runs += b.runs; }
@@ -951,9 +979,9 @@ const initMatchSummary = () => {
         document.getElementById('bestBowlStat').textContent = bestBowlId
             ? `${allBowlStats[bestBowlId].wickets}W / ${allBowlStats[bestBowlId].runs}R` : '';
 
-        // MOTM: highest impact — batsman with most runs OR bowler with most wickets
-        const motm = bestBat?.name || bestBowl?.name || '—';
-        document.getElementById('motmName').textContent = motm;
+        // MOTM: best player from winning team — prefer highest runs, fallback to most wickets
+        const motmPlayer = bestBat || bestBowl;
+        document.getElementById('motmName').textContent = motmPlayer?.name || '—';
         document.getElementById('motmStat').textContent = bestBatId
             ? `${allBatStats[bestBatId]} runs` : (bestBowlId ? `${allBowlStats[bestBowlId].wickets} wkts` : '');
     };
@@ -993,7 +1021,7 @@ const initMatchSummary = () => {
     document.getElementById('backToListBtn')?.addEventListener('click', () => {
         statsScreen.style.display = 'none';
         matchSelectScreen.style.display = 'block';
-        switchInningsTab(1);
+        switchTab(1); // reset to innings 1 tab
     });
 
     // If navigated here from live-score with a match already loaded, auto-open it
