@@ -126,78 +126,66 @@ const initMatchCreation = () => {
 // PLAYER REGISTRATION LOGIC
 // ==========================================
 const initPlayerRegistration = () => {
-    const addBtn = document.getElementById('addPlayerBtn');
-    const modal = document.getElementById('playerModal');
-    const advancedForm = document.getElementById('addPlayerForm');
-    const quickForm = document.getElementById('quickAddForm');
-    const list = document.getElementById('playerList');
-    const countSpan = document.getElementById('playerCount');
+    const list = document.getElementById('globalAvailableList');
+    const selectedCount = document.getElementById('selectedCount');
+    let availableGlobalPlayers = [];
+    let selectedIds = new Set();
+    
+    // Clear old match players
+    store.state.players = [];
+    store.save();
 
-    const renderPlayers = () => {
-        if (!list) return;
+    onValue(ref(rtdb, 'players'), (snapshot) => {
         list.innerHTML = '';
-        if (store.state.players.length === 0) {
-            list.innerHTML = '<p class="text-muted text-center" style="padding: 20px;">No players added yet.</p>';
-        }
-        store.state.players.forEach(p => {
-            const stylesText = p.battingStyle || p.bowlingStyle ? `${p.battingStyle || 'Unknown'} | ${p.bowlingStyle && p.bowlingStyle !== 'None' ? p.bowlingStyle : 'Unknown'}` : '';
-            list.innerHTML += `
-                <div class="player-card fade-in mb-4">
-                    <div class="player-info">
-                        <div class="player-avatar">${p.name.charAt(0).toUpperCase()}</div>
-                        <div>
-                            <div style="font-weight: 600;">${p.name}</div>
-                            ${stylesText ? `<div style="font-size: 0.8rem; color: var(--text-muted);">${stylesText}</div>` : ''}
-                        </div>
-                    </div>
-                    <button class="icon-btn text-danger" onclick="removePlayer('${p.id}')"><i class="fa-solid fa-trash"></i></button>
-                </div>
-            `;
-        });
-        if (countSpan) countSpan.textContent = store.state.players.length;
-    };
-
-    window.removePlayer = (id) => {
-        store.state.players = store.state.players.filter(p => p.id !== id);
-        store.save();
-        renderPlayers();
-    };
-
-    if (addBtn) {
-        addBtn.addEventListener('click', () => modal.classList.remove('hidden'));
-    }
-
-    if (quickForm) {
-        quickForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const input = document.getElementById('quickPlayerName');
-            if (input.value.trim() !== '') {
-                store.addPlayer({
-                    name: input.value.trim(),
-                    battingStyle: '',
-                    bowlingStyle: ''
-                });
-                input.value = '';
-                renderPlayers();
-            }
-        });
-    }
-
-    if (advancedForm) {
-        advancedForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            store.addPlayer({
-                name: document.getElementById('playerName').value,
-                battingStyle: document.getElementById('battingStyle').value,
-                bowlingStyle: document.getElementById('bowlingStyle').value
+        availableGlobalPlayers = [];
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            Object.keys(data).forEach(key => {
+                const p = data[key];
+                if (p.available !== false) {
+                    p.id = key;
+                    availableGlobalPlayers.push(p);
+                }
             });
-            modal.classList.add('hidden');
-            advancedForm.reset();
-            renderPlayers();
-        });
-    }
-
-    renderPlayers();
+            
+            if(availableGlobalPlayers.length === 0) {
+                list.innerHTML = '<p class="text-center text-muted">No available players found. Please add players in Manage Players.</p>';
+            } else {
+                availableGlobalPlayers.forEach(p => {
+                    const isSel = selectedIds.has(p.id) ? 'checked' : '';
+                    list.innerHTML += `
+                        <label class="list-group-item d-flex align-center" style="gap: 15px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 15px 10px;">
+                            <input type="checkbox" class="player-checkbox" value="${p.id}" ${isSel} style="width: 20px; height: 20px;">
+                            <div style="width: 35px; height: 35px; border-radius: 50%; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--text-muted);">
+                                ${p.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span style="font-size: 1.1rem;">${p.name}</span>
+                        </label>
+                    `;
+                });
+                
+                document.querySelectorAll('.player-checkbox').forEach(cb => {
+                    cb.addEventListener('change', (e) => {
+                        if(e.target.checked) selectedIds.add(e.target.value);
+                        else selectedIds.delete(e.target.value);
+                        selectedCount.textContent = selectedIds.size;
+                    });
+                });
+            }
+        } else {
+            list.innerHTML = '<p class="text-center text-muted">No global players exist. Please add them in the Manage Players screen.</p>';
+        }
+    });
+    
+    document.getElementById('confirmMatchPlayersBtn')?.addEventListener('click', () => {
+        if(selectedIds.size < 2) {
+            alert('Please select at least 2 players to start a match.');
+            return;
+        }
+        store.state.players = availableGlobalPlayers.filter(p => selectedIds.has(p.id));
+        store.save();
+        window.location.href = 'team-shuffle.html';
+    });
 };
 
 // ==========================================
@@ -482,6 +470,15 @@ const initLiveScore = () => {
             const runs = parseInt(e.target.dataset.runs);
             const prevBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
             store.recordBall(runs);
+            
+            // Strike rotation on 1s, 3s, 5s
+            if ((runs % 2 !== 0) && store.state.striker && store.state.nonStriker) {
+                const temp = store.state.striker;
+                store.state.striker = store.state.nonStriker;
+                store.state.nonStriker = temp;
+                store.save();
+            }
+            
             checkOverComplete(prevBalls);
             renderScore();
         });
@@ -503,7 +500,14 @@ const initLiveScore = () => {
         });
         document.getElementById('btnLegBye').addEventListener('click', () => { 
             const prevBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
-            store.recordBall(0, true, 'LB'); checkOverComplete(prevBalls); renderScore(); 
+            store.recordBall(1, true, 'LB'); // LB runs typically count for strike rotation. Let's do 1 run for simplicity in this button.
+            if (store.state.striker && store.state.nonStriker) {
+                const temp = store.state.striker;
+                store.state.striker = store.state.nonStriker;
+                store.state.nonStriker = temp;
+                store.save();
+            }
+            checkOverComplete(prevBalls); renderScore(); 
         });
         
         document.getElementById('btnWicket').addEventListener('click', () => { 
@@ -663,6 +667,93 @@ const initMatchSummary = () => {
     }
 };
 
+// ==========================================
+// MANAGE PLAYERS LOGIC (Admin)
+// ==========================================
+import { push, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+const initManagePlayers = () => {
+    const adminOverlay = document.getElementById('adminLoginOverlay');
+    const adminContent = document.getElementById('adminContent');
+    const loginBtn = document.getElementById('loginAdminBtn');
+    
+    // Simple password check
+    loginBtn.addEventListener('click', () => {
+        const pw = document.getElementById('adminPassword').value;
+        if (pw === 'admin123') { // Simple client-side admin password
+            adminOverlay.style.display = 'none';
+            adminContent.style.display = 'block';
+            loadGlobalPlayers();
+        } else {
+            alert('Incorrect Password');
+        }
+    });
+    
+    const loadGlobalPlayers = () => {
+        const list = document.getElementById('globalPlayersList');
+        onValue(ref(rtdb, 'players'), (snapshot) => {
+            list.innerHTML = '';
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                let count = 0;
+                Object.keys(data).forEach(key => {
+                    count++;
+                    const p = data[key];
+                    const isAvail = p.available !== false;
+                    
+                    list.innerHTML += `
+                        <div class="list-group-item d-flex justify-between align-center" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding: 15px 10px;">
+                            <div class="d-flex align-center" style="gap: 15px;">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: ${isAvail ? 'var(--primary-color)' : 'var(--bg-secondary)'}; display: flex; align-items: center; justify-content: center; font-weight: bold; color: ${isAvail ? '#000' : 'var(--text-muted)'};">
+                                    ${p.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <h4 style="margin: 0; color: ${isAvail ? 'var(--text-primary)' : 'var(--text-muted)'}">${p.name}</h4>
+                                    <small style="color: ${isAvail ? '#10B981' : '#EF4444'}">${isAvail ? 'Available' : 'Unavailable'}</small>
+                                </div>
+                            </div>
+                            <div class="d-flex" style="gap: 10px;">
+                                <button onclick="togglePlayerStatus('${key}', ${!isAvail})" class="btn ${isAvail ? 'btn-secondary' : 'btn-primary'}" style="padding: 5px 15px; font-size: 0.8rem;">
+                                    ${isAvail ? 'Set Away' : 'Set Available'}
+                                </button>
+                                <button onclick="deleteGlobalPlayer('${key}')" class="icon-btn text-danger" style="padding: 5px;"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `;
+                });
+                document.getElementById('totalPlayersCount').textContent = `${count} Players`;
+            } else {
+                list.innerHTML = '<p class="text-center text-muted mt-4">No global players found.</p>';
+                document.getElementById('totalPlayersCount').textContent = `0 Players`;
+            }
+        });
+    };
+    
+    document.getElementById('addGlobalPlayerBtn').addEventListener('click', () => {
+        const input = document.getElementById('newPlayerName');
+        const name = input.value.trim();
+        if (name) {
+            push(ref(rtdb, 'players'), {
+                name: name,
+                available: true,
+                createdAt: Date.now()
+            }).then(() => {
+                input.value = '';
+            });
+        }
+    });
+    
+    window.togglePlayerStatus = (key, makeAvail) => {
+        update(ref(rtdb, 'players/' + key), { available: makeAvail });
+    };
+    
+    window.deleteGlobalPlayer = (key) => {
+        if(confirm("Are you sure you want to completely delete this player?")) {
+            remove(ref(rtdb, 'players/' + key));
+        }
+    };
+};
+
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
     setupModals();
@@ -682,5 +773,6 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (path.includes('toss')) initToss();
     else if (path.includes('live-score')) initLiveScore();
     else if (path.includes('match-summary')) initMatchSummary();
+    else if (path.includes('manage-players')) initManagePlayers();
     else initHome(); // Default to home for GitHub Pages subdirectories
 });
