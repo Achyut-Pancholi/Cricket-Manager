@@ -431,11 +431,58 @@ const initLiveScore = () => {
         });
     }
 
+    const checkOverComplete = (prevBalls) => {
+        const newBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
+        if (newBalls > prevBalls && newBalls % 6 === 0) {
+            // Swap batsmen if both exist
+            if (store.state.striker && store.state.nonStriker) {
+                const temp = store.state.striker;
+                store.state.striker = store.state.nonStriker;
+                store.state.nonStriker = temp;
+                store.save();
+            }
+            
+            const totalOvers = parseFloat(store.state.matchDetails.overs);
+            if (store.state.score.overs < totalOvers) {
+                const teamBowling = store.state.tossDecision === 'Bat' ? 
+                    (store.state.tossWinner === 'Team A' ? store.state.teamB : store.state.teamA) :
+                    (store.state.tossWinner === 'Team A' ? store.state.teamA : store.state.teamB);
+                const bowlers = teamBowling?.length ? teamBowling : store.state.players;
+                
+                const selectNew = document.getElementById('selectNewBowler');
+                if (selectNew) {
+                    selectNew.innerHTML = '';
+                    bowlers.forEach(p => {
+                        if (p.id !== store.state.bowler?.id) {
+                            selectNew.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+                        }
+                    });
+                    document.getElementById('newBowlerModal').classList.remove('hidden');
+                }
+            } else {
+                alert("Innings Complete!");
+                window.location.href = 'match-summary.html';
+            }
+        }
+    };
+    
+    document.getElementById('confirmNewBowler')?.addEventListener('click', () => {
+        const nbId = document.getElementById('selectNewBowler').value;
+        if(nbId) {
+            store.state.bowler = store.state.players.find(p => p.id === nbId);
+            store.save();
+        }
+        document.getElementById('newBowlerModal').classList.add('hidden');
+        renderScore();
+    });
+
     // Bind Score Buttons
     document.querySelectorAll('.score-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const runs = parseInt(e.target.dataset.runs);
+            const prevBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
             store.recordBall(runs);
+            checkOverComplete(prevBalls);
             renderScore();
         });
     });
@@ -446,16 +493,56 @@ const initLiveScore = () => {
             renderScore();
         });
 
-        document.getElementById('btnWide').addEventListener('click', () => { store.recordBall(0, true, 'WD'); renderScore(); });
-        document.getElementById('btnNoBall').addEventListener('click', () => { store.recordBall(0, true, 'NB'); renderScore(); });
+        document.getElementById('btnWide').addEventListener('click', () => { 
+            const prevBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
+            store.recordBall(0, true, 'WD'); checkOverComplete(prevBalls); renderScore(); 
+        });
+        document.getElementById('btnNoBall').addEventListener('click', () => { 
+            const prevBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
+            store.recordBall(0, true, 'NB'); checkOverComplete(prevBalls); renderScore(); 
+        });
+        document.getElementById('btnLegBye').addEventListener('click', () => { 
+            const prevBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
+            store.recordBall(0, true, 'LB'); checkOverComplete(prevBalls); renderScore(); 
+        });
+        
         document.getElementById('btnWicket').addEventListener('click', () => { 
+            const teamBatting = store.state.tossDecision === 'Bat' ? 
+                (store.state.tossWinner === 'Team A' ? store.state.teamA : store.state.teamB) :
+                (store.state.tossWinner === 'Team A' ? store.state.teamB : store.state.teamA);
+            const batters = teamBatting?.length ? teamBatting : store.state.players;
+            
+            const outIds = store.state.history.filter(b => b.isWicket).map(b => b.strikerId);
+            const currentBatters = [store.state.striker?.id, store.state.nonStriker?.id];
+            
+            const selectNew = document.getElementById('newBatsman');
+            selectNew.innerHTML = '<option value="">None (All Out / End Innings)</option>';
+            batters.forEach(p => {
+                if (!outIds.includes(p.id) && !currentBatters.includes(p.id)) {
+                    selectNew.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+                }
+            });
             document.getElementById('wicketModal').classList.remove('hidden');
         });
         
         document.getElementById('confirmWicket').addEventListener('click', () => {
             const wType = document.getElementById('wicketType').value;
+            const newBatId = document.getElementById('newBatsman').value;
+            
+            const prevBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
             store.recordBall(0, false, '', true, wType);
+            
+            if (newBatId) {
+                store.state.striker = store.state.players.find(p => p.id === newBatId);
+                store.save();
+            } else {
+                alert("Innings Complete!");
+                window.location.href = 'match-summary.html';
+                return;
+            }
+            
             document.getElementById('wicketModal').classList.add('hidden');
+            checkOverComplete(prevBalls);
             renderScore();
         });
         

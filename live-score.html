@@ -156,6 +156,21 @@
         </div>
     </div>
 
+    <!-- New Bowler Modal -->
+    <div id="newBowlerModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="mb-4 text-primary">End of Over</h2>
+            <p class="text-muted mb-4">Batsmen have crossed. Please select a new bowler.</p>
+            <div class="input-group">
+                <label>New Bowler</label>
+                <select id="selectNewBowler" class="input-field">
+                    <!-- Options populated via JS -->
+                </select>
+            </div>
+            <button class="btn btn-primary btn-block mt-4" id="confirmNewBowler">Start Next Over</button>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/app.js"></script>
