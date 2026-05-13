@@ -307,16 +307,27 @@ const initLiveScore = () => {
     }
 
     const populateSelects = () => {
-        const teamBatting = store.state.tossDecision === 'Bat' ? 
-            (store.state.tossWinner === 'Team A' ? store.state.teamA : store.state.teamB) :
-            (store.state.tossWinner === 'Team A' ? store.state.teamB : store.state.teamA);
-        
-        const teamBowling = store.state.tossDecision === 'Bowl' ? 
-            (store.state.tossWinner === 'Team A' ? store.state.teamA : store.state.teamB) :
-            (store.state.tossWinner === 'Team A' ? store.state.teamB : store.state.teamA);
-            
-        const batters = teamBatting && teamBatting.length ? teamBatting : store.state.players;
-        const bowlers = teamBowling && teamBowling.length ? teamBowling : store.state.players;
+        // Innings 1: toss winner bats/bowls as decided
+        // Innings 2: roles are REVERSED
+        const isInnings2 = store.state.currentInnings === 2;
+
+        // Batting team for innings 1
+        let teamBatting1 = store.state.tossDecision === 'Bat'
+            ? (store.state.tossWinner === 'Team A' ? store.state.teamA : store.state.teamB)
+            : (store.state.tossWinner === 'Team A' ? store.state.teamB : store.state.teamA);
+
+        let teamBowling1 = store.state.tossDecision === 'Bat'
+            ? (store.state.tossWinner === 'Team A' ? store.state.teamB : store.state.teamA)
+            : (store.state.tossWinner === 'Team A' ? store.state.teamA : store.state.teamB);
+
+        // For innings 2, swap the roles
+        const batters = isInnings2
+            ? (teamBowling1?.length ? teamBowling1 : store.state.players)
+            : (teamBatting1?.length ? teamBatting1 : store.state.players);
+
+        const bowlers = isInnings2
+            ? (teamBatting1?.length ? teamBatting1 : store.state.players)
+            : (teamBowling1?.length ? teamBowling1 : store.state.players);
 
         let bOpts = '<option value="">Select Striker...</option>';
         batters.forEach(p => bOpts += `<option value="${p.id}">${p.name}</option>`);
