@@ -272,10 +272,13 @@ const initLiveScore = () => {
                 document.getElementById('shareMatchName').textContent = store.state.matchDetails?.name || 'Match';
                 document.getElementById('shareMatchIdText').textContent = store.state.matchId;
                 
+                const joinUrl = window.location.origin + window.location.pathname.replace('live-score.html', '') + '?join=' + store.state.matchId;
+                const urlInput = document.getElementById('shareUrlInput');
+                if(urlInput) urlInput.value = joinUrl;
+                
                 const qrContainer = document.getElementById('shareQrCode');
                 if(qrContainer) {
                     qrContainer.innerHTML = '';
-                    const joinUrl = window.location.origin + window.location.pathname.replace('live-score.html', '') + '?join=' + store.state.matchId;
                     
                     if(typeof QRCode !== 'undefined') {
                         new QRCode(qrContainer, {
