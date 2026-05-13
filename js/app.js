@@ -264,6 +264,34 @@ const initToss = () => {
 // LIVE SCORE LOGIC
 // ==========================================
 const initLiveScore = () => {
+    const shareBtn = document.getElementById('shareMatchBtn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', () => {
+            const modal = document.getElementById('shareMatchModal');
+            if(modal) {
+                document.getElementById('shareMatchName').textContent = store.state.matchDetails?.name || 'Match';
+                document.getElementById('shareMatchIdText').textContent = store.state.matchId;
+                
+                const qrContainer = document.getElementById('shareQrCode');
+                if(qrContainer) {
+                    qrContainer.innerHTML = '';
+                    const joinUrl = window.location.origin + window.location.pathname.replace('live-score.html', '') + '?join=' + store.state.matchId;
+                    
+                    if(typeof QRCode !== 'undefined') {
+                        new QRCode(qrContainer, {
+                            text: joinUrl, width: 200, height: 200,
+                            colorDark : "#000000", colorLight : "#ffffff",
+                            correctLevel : QRCode.CorrectLevel.H
+                        });
+                    } else {
+                        qrContainer.innerHTML = `<p class="text-danger">QR Library not loaded.</p>`;
+                    }
+                }
+                modal.classList.remove('hidden');
+            }
+        });
+    }
+
     const populateSelects = () => {
         const teamBatting = store.state.tossDecision === 'Bat' ? 
             (store.state.tossWinner === 'Team A' ? store.state.teamA : store.state.teamB) :
@@ -410,15 +438,65 @@ const initLiveScore = () => {
     }
 };
 
+// ==========================================
+// MATCH SUMMARY LOGIC
+// ==========================================
+const initMatchSummary = () => {
+    if (!store.state.matchId) {
+        document.getElementById('scorecardContainer').innerHTML = '<p class="text-muted text-center">No match data available.</p>';
+        return;
+    }
+
+    const { score, matchDetails, history } = store.state;
+    document.getElementById('matchResultText').textContent = `${matchDetails?.name || 'Match'} - Summary`;
+    
+    document.getElementById('teamAScore').textContent = score.runs;
+    document.getElementById('teamAWickets').textContent = score.wickets;
+    document.getElementById('teamAOvers').textContent = score.overs;
+
+    document.getElementById('teamBScore').textContent = '-';
+    document.getElementById('teamBWickets').textContent = '-';
+    document.getElementById('teamBOvers').textContent = '-';
+    
+    document.getElementById('motmName').textContent = store.state.striker?.name || 'N/A';
+    document.getElementById('bestBowlerName').textContent = store.state.bowler?.name || 'N/A';
+    
+    const container = document.getElementById('scorecardContainer');
+    container.innerHTML = '<div class="list-group" id="ballByBallList" style="text-align:left;"></div>';
+    const list = document.getElementById('ballByBallList');
+    
+    const recentHistory = history.slice().reverse();
+    if(recentHistory.length === 0) {
+        list.innerHTML = '<p class="text-center text-muted mt-2">No balls bowled yet.</p>';
+    } else {
+        recentHistory.forEach(b => {
+            const type = b.isWicket ? '<span class="text-danger font-weight-bold">Wicket!</span>' : (b.isExtra ? `<span class="text-accent">${b.extraType}</span>` : `<strong>${b.runs} runs</strong>`);
+            list.innerHTML += `<div style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between;">
+                <span class="text-muted">Over ${b.over || 0}</span>
+                <span>${type}</span>
+            </div>`;
+        });
+    }
+};
+
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
     setupModals();
     
+    // Check for Join URL Parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const joinId = urlParams.get('join');
+    if (joinId) {
+        loadMatch(joinId);
+        return; // wait for redirect
+    }
+
     const path = window.location.pathname;
     if (path.includes('match-creation')) initMatchCreation();
     else if (path.includes('player-registration')) initPlayerRegistration();
     else if (path.includes('team-shuffle')) initTeamShuffle();
     else if (path.includes('toss')) initToss();
     else if (path.includes('live-score')) initLiveScore();
+    else if (path.includes('match-summary')) initMatchSummary();
     else initHome(); // Default to home for GitHub Pages subdirectories
 });

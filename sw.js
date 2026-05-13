@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gullyscore-v1';
+const CACHE_NAME = 'gullyscore-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

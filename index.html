@@ -54,7 +54,6 @@
             <section class="recent-matches">
                 <div class="section-header">
                     <h3>Recent Matches</h3>
-                    <a href="match-summary.html" class="link-btn">View All</a>
                 </div>
                 <div class="match-list" id="recentMatchesList">
                     <!-- Populated by JS -->
@@ -77,14 +76,15 @@
             <span class="close-btn">&times;</span>
             <h2>Join Match</h2>
             <p>Scan QR code or enter match ID</p>
-            <div class="qr-scanner-placeholder">
-                <i class="fa-solid fa-camera fa-4x"></i>
-            </div>
+            <div id="qr-reader" style="width:100%; border-radius: 10px; overflow: hidden; margin-bottom: 10px;"></div>
+            <p class="text-center">OR</p>
             <input type="text" id="matchIdInput" class="input-field" placeholder="Enter Match ID">
             <button class="btn btn-primary btn-block" id="submitJoinMatch">Join</button>
         </div>
     </div>
 
+    <!-- HTML5 QRCode library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <!-- Firebase SDKs -->
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/app.js"></script>
