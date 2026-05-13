@@ -88,6 +88,28 @@
         </main>
     </div>
 
+    <!-- Initial Player Selection Modal -->
+    <div id="playerSelectModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="mb-4 text-primary">Select Players</h2>
+            <div class="input-group">
+                <label>Striker</label>
+                <select id="selectStriker" class="input-field"></select>
+            </div>
+            <div class="input-group">
+                <label>Non-Striker (Optional)</label>
+                <select id="selectNonStriker" class="input-field">
+                    <option value="">None (Single Batsman)</option>
+                </select>
+            </div>
+            <div class="input-group mt-4">
+                <label>Bowler</label>
+                <select id="selectBowler" class="input-field"></select>
+            </div>
+            <button class="btn btn-primary btn-block mt-4" id="confirmPlayersBtn">Start Play</button>
+        </div>
+    </div>
+
     <!-- Wicket Modal -->
     <div id="wicketModal" class="modal hidden">
         <div class="modal-content">

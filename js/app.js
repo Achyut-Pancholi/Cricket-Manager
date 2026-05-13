@@ -23,6 +23,8 @@ const setupModals = () => {
     });
 };
 
+import { ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
 // ==========================================
 // HOME PAGE LOGIC
 // ==========================================
@@ -32,32 +34,55 @@ const initHome = () => {
         joinBtn.addEventListener('click', () => {
             document.getElementById('qrModal').classList.remove('hidden');
         });
+        document.getElementById('submitJoinMatch')?.addEventListener('click', () => {
+            const id = document.getElementById('matchIdInput').value.trim();
+            if (id) loadMatch(id);
+        });
     }
 
     const recentList = document.getElementById('recentMatchesList');
     if (recentList) {
-        // Load dummy data for recent matches
-        fetch('data/dummy-data.json')
-            .then(res => res.json())
-            .then(data => {
+        if (rtdb) {
+            const matchesRef = ref(rtdb, 'matches');
+            onValue(matchesRef, (snapshot) => {
                 recentList.innerHTML = '';
-                data.recentMatches.forEach(match => {
-                    recentList.innerHTML += `
-                        <div class="secondary-card mb-4" style="text-align: left; display: block;">
-                            <div class="d-flex justify-between align-center">
-                                <div>
-                                    <h4 style="margin:0">${match.name}</h4>
-                                    <small style="color: var(--text-muted)">${match.date}</small>
+                if (snapshot.exists()) {
+                    const matches = snapshot.val();
+                    Object.keys(matches).forEach(key => {
+                        const m = matches[key];
+                        if (!m.matchDetails) return;
+                        recentList.innerHTML += `
+                            <div class="secondary-card mb-4" style="text-align: left; display: block; cursor: pointer;" onclick="loadMatch('${key}')">
+                                <div class="d-flex justify-between align-center">
+                                    <div>
+                                        <h4 style="margin:0">${m.matchDetails.name}</h4>
+                                        <small style="color: var(--text-muted)">${m.matchDetails.overs} Overs</small>
+                                    </div>
+                                    <span class="text-primary font-weight-bold">${m.score.runs}/${m.score.wickets}</span>
                                 </div>
-                                <span class="text-primary font-weight-bold">${match.result}</span>
                             </div>
-                        </div>
-                    `;
-                });
-            }).catch(() => {
-                recentList.innerHTML = '<p class="text-center text-muted">No recent matches found locally.</p>';
+                        `;
+                    });
+                } else {
+                    recentList.innerHTML = '<p class="text-center text-muted">No matches found. Create one!</p>';
+                }
+            }, (error) => {
+                recentList.innerHTML = '<p class="text-center text-danger">Error loading matches.</p>';
             });
+        } else {
+            recentList.innerHTML = '<p class="text-center text-muted">Offline Mode. No recent matches available.</p>';
+        }
     }
+};
+
+window.loadMatch = (matchId) => {
+    get(ref(rtdb, 'matches/' + matchId)).then((snapshot) => {
+        if(snapshot.exists()) {
+            store.state = snapshot.val();
+            store.save();
+            window.location.href = 'live-score.html';
+        }
+    });
 };
 
 // ==========================================
@@ -239,6 +264,60 @@ const initToss = () => {
 // LIVE SCORE LOGIC
 // ==========================================
 const initLiveScore = () => {
+    const populateSelects = () => {
+        const teamBatting = store.state.tossDecision === 'Bat' ? 
+            (store.state.tossWinner === 'Team A' ? store.state.teamA : store.state.teamB) :
+            (store.state.tossWinner === 'Team A' ? store.state.teamB : store.state.teamA);
+        
+        const teamBowling = store.state.tossDecision === 'Bowl' ? 
+            (store.state.tossWinner === 'Team A' ? store.state.teamA : store.state.teamB) :
+            (store.state.tossWinner === 'Team A' ? store.state.teamB : store.state.teamA);
+            
+        const batters = teamBatting && teamBatting.length ? teamBatting : store.state.players;
+        const bowlers = teamBowling && teamBowling.length ? teamBowling : store.state.players;
+
+        let bOpts = '<option value="">Select Striker...</option>';
+        batters.forEach(p => bOpts += `<option value="${p.id}">${p.name}</option>`);
+        const selStriker = document.getElementById('selectStriker');
+        if(selStriker) selStriker.innerHTML = bOpts;
+        
+        let nbOpts = '<option value="">None (Single Batsman)</option>';
+        batters.forEach(p => nbOpts += `<option value="${p.id}">${p.name}</option>`);
+        const selNonStriker = document.getElementById('selectNonStriker');
+        if(selNonStriker) selNonStriker.innerHTML = nbOpts;
+        
+        let bowlOpts = '<option value="">Select Bowler...</option>';
+        bowlers.forEach(p => bowlOpts += `<option value="${p.id}">${p.name}</option>`);
+        const selBowler = document.getElementById('selectBowler');
+        if(selBowler) selBowler.innerHTML = bowlOpts;
+    };
+
+    if (!store.state.striker || !store.state.bowler) {
+        const modal = document.getElementById('playerSelectModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            populateSelects();
+        }
+    }
+
+    document.getElementById('confirmPlayersBtn')?.addEventListener('click', () => {
+        const strId = document.getElementById('selectStriker').value;
+        const nsId = document.getElementById('selectNonStriker').value;
+        const bwId = document.getElementById('selectBowler').value;
+        
+        if (!strId || !bwId) return alert('Select at least a Striker and Bowler');
+        
+        const getP = id => store.state.players.find(p => p.id === id) || { name: 'Player' };
+        
+        store.state.striker = getP(strId);
+        store.state.nonStriker = nsId ? getP(nsId) : null;
+        store.state.bowler = getP(bwId);
+        
+        store.save();
+        document.getElementById('playerSelectModal').classList.add('hidden');
+        renderScore();
+    });
+
     const renderScore = () => {
         const elRuns = document.getElementById('runs');
         if(!elRuns) return;
@@ -248,6 +327,22 @@ const initLiveScore = () => {
         document.getElementById('overs').textContent = store.state.score.overs;
         if (store.state.matchDetails) {
             document.getElementById('totalOvers').textContent = store.state.matchDetails.overs;
+        }
+
+        if (store.state.striker) {
+            const strikerEl = document.getElementById('strikerName');
+            if (strikerEl) strikerEl.textContent = store.state.striker.name;
+        }
+        if (store.state.nonStriker) {
+            const nsEl = document.getElementById('nonStrikerName');
+            if (nsEl) nsEl.textContent = store.state.nonStriker.name;
+        } else {
+            const nsEl = document.getElementById('nonStrikerName');
+            if (nsEl) nsEl.textContent = 'None';
+        }
+        if (store.state.bowler) {
+            const bwEl = document.getElementById('bowlerName');
+            if (bwEl) bwEl.textContent = store.state.bowler.name;
         }
 
         // Render over tracker
@@ -268,12 +363,21 @@ const initLiveScore = () => {
             tracker.innerHTML += `<div class="ball-circle fade-in ${cls}">${txt}</div>`;
         });
         tracker.scrollLeft = tracker.scrollWidth;
-        
-        // Push to Firebase Realtime if available
-        if(window.rtdb && store.state.matchId) {
-            // update(ref(rtdb, 'matches/' + store.state.matchId), store.state);
-        }
     };
+
+    // Listen for live updates from other devices (Spectator mode)
+    if(rtdb && store.state.matchId) {
+        onValue(ref(rtdb, 'matches/' + store.state.matchId), (snapshot) => {
+            if(snapshot.exists()) {
+                const newData = snapshot.val();
+                if (JSON.stringify(store.state.score) !== JSON.stringify(newData.score)) {
+                    store.state = newData;
+                    localStorage.setItem('gullyscore_state', JSON.stringify(newData));
+                    renderScore();
+                }
+            }
+        });
+    }
 
     // Bind Score Buttons
     document.querySelectorAll('.score-btn').forEach(btn => {

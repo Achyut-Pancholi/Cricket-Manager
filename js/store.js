@@ -1,3 +1,6 @@
+import { rtdb } from './firebase-config.js';
+import { ref, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
 // State Manager with localStorage fallback
 export const store = {
     state: {
@@ -31,6 +34,9 @@ export const store = {
 
     save() {
         localStorage.setItem('gullyscore_state', JSON.stringify(this.state));
+        if (this.state.matchId && rtdb) {
+            set(ref(rtdb, 'matches/' + this.state.matchId), this.state).catch(e => console.error("RTDB Sync error", e));
+        }
     },
 
     update(key, value) {
