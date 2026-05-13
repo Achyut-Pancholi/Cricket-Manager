@@ -706,115 +706,301 @@ const initLiveScore = () => {
 };
 
 // ==========================================
-// MATCH SUMMARY LOGIC
+// MATCH SUMMARY / STATS LOGIC
 // ==========================================
 const initMatchSummary = () => {
-    if (!store.state.matchId) {
-        document.getElementById('battingStatsBody').innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No data</td></tr>';
-        document.getElementById('bowlingStatsBody').innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No data</td></tr>';
-        return;
-    }
+    const matchSelectScreen = document.getElementById('matchSelectScreen');
+    const statsScreen = document.getElementById('statsScreen');
+    const matchPickList = document.getElementById('matchPickList');
 
-    const { score, matchDetails, history, players } = store.state;
-    document.getElementById('matchResultText').textContent = `${matchDetails?.name || 'Match'} - Summary`;
-    
-    document.getElementById('teamAScore').textContent = score.runs;
-    document.getElementById('teamAWickets').textContent = score.wickets;
-    document.getElementById('teamAOvers').textContent = score.overs;
+    // ── Helper: calculate stats from a ball-by-ball history array ──
+    const calcStats = (history) => {
+        const batters = {};
+        const bowlers = {};
+        history.forEach(b => {
+            if (!b.strikerId || !b.bowlerId) return;
 
-    document.getElementById('teamBScore').textContent = '-';
-    document.getElementById('teamBWickets').textContent = '-';
-    document.getElementById('teamBOvers').textContent = '-';
-    
-    document.getElementById('motmName').textContent = store.state.striker?.name || 'N/A';
-    document.getElementById('bestBowlerName').textContent = store.state.bowler?.name || 'N/A';
-    
-    // Calculate player stats
-    const batters = {};
-    const bowlers = {};
-    
-    const getPName = id => players.find(p => p.id === id)?.name || 'Unknown Player';
+            // --- Batter ---
+            if (!batters[b.strikerId]) batters[b.strikerId] = { runs: 0, balls: 0, fours: 0, sixes: 0, out: false };
+            if (!b.isExtra) {
+                batters[b.strikerId].balls += 1;
+                if (!b.isWicket) {
+                    batters[b.strikerId].runs += b.runs;
+                    if (b.runs === 4) batters[b.strikerId].fours += 1;
+                    if (b.runs === 6) batters[b.strikerId].sixes += 1;
+                }
+            }
+            if (b.isWicket) batters[b.strikerId].out = true;
 
-    history.forEach(b => {
-        if (!b.strikerId || !b.bowlerId) return; // Legacy fallback
-        
-        if (!batters[b.strikerId]) batters[b.strikerId] = { runs: 0, balls: 0, fours: 0, sixes: 0, out: false };
-        if (!bowlers[b.bowlerId]) bowlers[b.bowlerId] = { runs: 0, balls: 0, wickets: 0 };
-        
-        // Batter stats
-        if (!b.isExtra || b.extraType === 'NB') {
-            batters[b.strikerId].balls += 1;
-            batters[b.strikerId].runs += b.runs;
-            if (b.runs === 4) batters[b.strikerId].fours += 1;
-            if (b.runs === 6) batters[b.strikerId].sixes += 1;
+            // --- Bowler ---
+            if (!bowlers[b.bowlerId]) bowlers[b.bowlerId] = { runs: 0, balls: 0, wickets: 0 };
+            if (!b.isExtra) {
+                bowlers[b.bowlerId].balls += 1;
+                bowlers[b.bowlerId].runs += b.runs;
+            } else if (b.extraType === 'WD' || b.extraType === 'NB') {
+                bowlers[b.bowlerId].runs += 1; // penalty + no ball to over
+            } else if (b.extraType === 'LB') {
+                bowlers[b.bowlerId].balls += 1; // LB counts as valid ball
+                // LB runs don't go against bowler
+            }
+            if (b.isWicket && b.wicketType !== 'Run Out') bowlers[b.bowlerId].wickets += 1;
+        });
+        return { batters, bowlers };
+    };
+
+    // ── Helper: render a batting table body ──
+    const renderBatting = (tbodyId, history, teamPlayers, allPlayers) => {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return null;
+        const { batters } = calcStats(history);
+        tbody.innerHTML = '';
+        let topRuns = -1, topId = null;
+
+        // Only show players who actually batted (from this innings' history)
+        const battedIds = [...new Set(history.map(b => b.strikerId).filter(Boolean))];
+        // Order: players who batted in order they first appeared
+        battedIds.forEach(id => {
+            const st = batters[id];
+            if (!st) return;
+            if (st.runs > topRuns) { topRuns = st.runs; topId = id; }
+        });
+
+        // Show all team players, mark DNB if they didn't bat
+        const teamList = teamPlayers?.length ? teamPlayers : allPlayers;
+        teamList.forEach(p => {
+            const st = batters[p.id];
+            const batted = battedIds.includes(p.id);
+            if (!batted) {
+                tbody.innerHTML += `<tr style="opacity:0.4;"><td>${p.name} <span style="font-size:0.7rem;color:var(--text-muted);">DNB</span></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+                return;
+            }
+            const sr = st.balls > 0 ? ((st.runs / st.balls) * 100).toFixed(1) : '0.0';
+            const isTop = p.id === topId;
+            tbody.innerHTML += `
+                <tr class="${isTop ? 'top-scorer' : ''}">
+                    <td><div style="font-weight:600;">${p.name}</div><div style="font-size:0.72rem;color:var(--text-muted);">${st.out ? 'Out' : 'Not Out'}</div></td>
+                    <td style="font-weight:${isTop ? '800' : '400'};color:${isTop ? 'var(--primary)' : 'inherit'};">${st.runs}</td>
+                    <td>${st.balls}</td>
+                    <td>${st.fours}</td>
+                    <td>${st.sixes}</td>
+                    <td>${sr}</td>
+                </tr>`;
+        });
+        return { topId, topRuns, topBatter: allPlayers.find(p => p.id === topId) };
+    };
+
+    // ── Helper: render a bowling table body ──
+    const renderBowling = (tbodyId, history, teamPlayers, allPlayers) => {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return null;
+        const { bowlers } = calcStats(history);
+        tbody.innerHTML = '';
+        let topWkts = -1, topEco = 999, topId = null;
+
+        const teamList = teamPlayers?.length ? teamPlayers : allPlayers;
+        teamList.forEach(p => {
+            const st = bowlers[p.id];
+            if (!st || st.balls === 0) return; // didn't bowl
+            const oversInt = Math.floor(st.balls / 6);
+            const ballsRem = st.balls % 6;
+            const oversDisplay = `${oversInt}.${ballsRem}`;
+            const oversDecimal = oversInt + ballsRem / 6;
+            const eco = oversDecimal > 0 ? (st.runs / oversDecimal).toFixed(1) : '0.0';
+
+            // Maiden overs: a maiden is an over where 0 runs were scored off the bat from that bowler
+            // Simple approach: count full overs bowled by this bowler and check the balls
+            let maidens = 0;
+            const bowlerBalls = history.filter(b => b.bowlerId === p.id && (!b.isExtra || b.extraType === 'LB'));
+            for (let i = 0; i < Math.floor(bowlerBalls.length / 6); i++) {
+                const overBalls = bowlerBalls.slice(i * 6, i * 6 + 6);
+                const overRuns = overBalls.reduce((s, b) => s + (b.isExtra ? 0 : b.runs), 0);
+                if (overRuns === 0) maidens++;
+            }
+
+            const isBest = st.wickets > topWkts || (st.wickets === topWkts && parseFloat(eco) < topEco);
+            if (isBest) { topWkts = st.wickets; topEco = parseFloat(eco); topId = p.id; }
+
+            tbody.innerHTML += `
+                <tr>
+                    <td style="font-weight:600;">${p.name}</td>
+                    <td>${oversDisplay}</td>
+                    <td>${maidens}</td>
+                    <td>${st.runs}</td>
+                    <td style="font-weight:700;color:${st.wickets > 0 ? 'var(--primary)' : 'inherit'};">${st.wickets}</td>
+                    <td>${eco}</td>
+                </tr>`;
+        });
+        return { topId, topBowler: allPlayers.find(p => p.id === topId) };
+    };
+
+    // ── Render full stats for a loaded match state ──
+    const renderStats = (state) => {
+        matchSelectScreen.style.display = 'none';
+        statsScreen.style.display = 'block';
+
+        const players = state.players || [];
+        const teamA = state.teamA || [];
+        const teamB = state.teamB || [];
+
+        // Determine who batted in innings 1
+        const inn1Batting = state.tossDecision === 'Bat'
+            ? (state.tossWinner === 'Team A' ? teamA : teamB)
+            : (state.tossWinner === 'Team A' ? teamB : teamA);
+        const inn1Bowling = state.tossDecision === 'Bat'
+            ? (state.tossWinner === 'Team A' ? teamB : teamA)
+            : (state.tossWinner === 'Team A' ? teamA : teamB);
+        const inn1BatLabel = inn1Batting === teamA ? 'Team A' : 'Team B';
+        const inn1BowlLabel = inn1Bowling === teamA ? 'Team A' : 'Team B';
+
+        // Innings 1 history and score
+        const inn1History = state.innings1?.history || state.history || [];
+        const inn1Score = state.innings1?.score || state.score;
+
+        // Innings 2
+        const inn2History = state.innings1 ? (state.history || []) : [];
+        const inn2Score = state.innings1 ? state.score : null;
+        const inn2BatLabel = inn1BowlLabel; // roles flip
+        const inn2BowlLabel = inn1BatLabel;
+
+        // Scores display
+        document.getElementById('matchName').textContent = state.matchDetails?.name || 'Match';
+        document.getElementById('inn1TeamLabel').textContent = inn1BatLabel;
+        document.getElementById('inn1Score').textContent = `${inn1Score?.runs ?? '—'}/${inn1Score?.wickets ?? '—'}`;
+        document.getElementById('inn1Overs').textContent = inn1Score ? `(${inn1Score.overs} ov)` : '';
+        document.getElementById('inn2TeamLabel').textContent = inn2BatLabel;
+        document.getElementById('inn2Score').textContent = inn2Score ? `${inn2Score.runs}/${inn2Score.wickets}` : 'Innings 2 pending';
+        document.getElementById('inn2Overs').textContent = inn2Score ? `(${inn2Score.overs} ov)` : '';
+
+        // Tab labels
+        document.getElementById('tab1').textContent = `${inn1BatLabel} Batting`;
+        document.getElementById('tab2').textContent = `${inn2BatLabel} Batting`;
+        document.getElementById('inn1BatTeam').textContent = `${inn1BatLabel} — Batting`;
+        document.getElementById('inn1BowlTeam').textContent = `${inn1BowlLabel} — Bowling`;
+        document.getElementById('inn2BatTeam').textContent = `${inn2BatLabel} — Batting`;
+        document.getElementById('inn2BowlTeam').textContent = `${inn2BowlLabel} — Bowling`;
+
+        // Render innings 1 tables
+        const batRes1 = renderBatting('inn1BatBody', inn1History, inn1Batting, players);
+        const bowlRes1 = renderBowling('inn1BowlBody', inn1History, inn1Bowling, players);
+
+        // Render innings 2 tables
+        const batRes2 = inn2History.length > 0
+            ? renderBatting('inn2BatBody', inn2History, inn1Bowling, players)
+            : null;
+        const bowlRes2 = inn2History.length > 0
+            ? renderBowling('inn2BowlBody', inn2History, inn1Batting, players)
+            : null;
+
+        // Hide innings 2 tab if not played
+        document.getElementById('tab2').style.opacity = inn2History.length > 0 ? '1' : '0.4';
+
+        // ── Result calculation ──
+        let resultText = 'In Progress';
+        let resultSub = '';
+        if (inn2Score && inn1Score) {
+            const target = inn1Score.runs + 1;
+            if (inn2Score.runs >= target) {
+                const wktsLeft = (inn1Bowling?.length || players.length / 2) - inn2Score.wickets;
+                resultText = `${inn2BatLabel} Won by ${wktsLeft} wicket${wktsLeft !== 1 ? 's' : ''}`;
+                resultSub = `Target: ${target} | Chased in ${inn2Score.overs} overs`;
+            } else if (parseFloat(inn2Score.overs) >= parseFloat(state.matchDetails?.overs || 99)) {
+                const margin = inn1Score.runs - inn2Score.runs;
+                resultText = `${inn1BatLabel} Won by ${margin} run${margin !== 1 ? 's' : ''}`;
+                resultSub = `${inn2BatLabel} fell short of target ${target}`;
+            } else {
+                resultText = 'Match in Progress — Innings 2';
+                resultSub = `${inn2BatLabel} need ${target - inn2Score.runs} more`;
+            }
+        } else if (inn1Score) {
+            resultText = 'Innings 1 Complete';
+            resultSub = `${inn1BatLabel}: ${inn1Score.runs}/${inn1Score.wickets} in ${inn1Score.overs} overs`;
         }
-        if (b.isWicket) batters[b.strikerId].out = true;
-        
-        // Bowler stats
-        if (b.isExtra && (b.extraType === 'WD' || b.extraType === 'NB')) {
-            bowlers[b.bowlerId].runs += 1;
-        } else if (!b.isExtra || b.extraType === 'LB') {
-            bowlers[b.bowlerId].balls += 1;
+        document.getElementById('resultText').textContent = resultText;
+        document.getElementById('resultSubtext').textContent = resultSub;
+
+        // ── Awards ──
+        // Best Batsman: highest runs across both innings
+        const allBatStats = {};
+        [...inn1History, ...inn2History].forEach(b => {
+            if (!b.strikerId || b.isExtra || b.isWicket) return;
+            if (!allBatStats[b.strikerId]) allBatStats[b.strikerId] = 0;
+            allBatStats[b.strikerId] += b.runs;
+        });
+        const bestBatId = Object.keys(allBatStats).sort((a, b) => allBatStats[b] - allBatStats[a])[0];
+        const bestBat = players.find(p => p.id === bestBatId);
+        document.getElementById('bestBatName').textContent = bestBat?.name || '—';
+        document.getElementById('bestBatStat').textContent = bestBatId ? `${allBatStats[bestBatId]} runs` : '';
+
+        // Best Bowler: most wickets, then lowest economy
+        const allBowlStats = {};
+        [...inn1History, ...inn2History].forEach(b => {
+            if (!b.bowlerId) return;
+            if (!allBowlStats[b.bowlerId]) allBowlStats[b.bowlerId] = { wickets: 0, runs: 0, balls: 0 };
+            if (b.isWicket && b.wicketType !== 'Run Out') allBowlStats[b.bowlerId].wickets += 1;
+            if (!b.isExtra) { allBowlStats[b.bowlerId].balls += 1; allBowlStats[b.bowlerId].runs += b.runs; }
+            else if (b.extraType === 'WD' || b.extraType === 'NB') allBowlStats[b.bowlerId].runs += 1;
+        });
+        const bestBowlId = Object.keys(allBowlStats).sort((a, b) => {
+            if (allBowlStats[b].wickets !== allBowlStats[a].wickets) return allBowlStats[b].wickets - allBowlStats[a].wickets;
+            const ecoA = allBowlStats[a].balls > 0 ? allBowlStats[a].runs / allBowlStats[a].balls : 999;
+            const ecoB = allBowlStats[b].balls > 0 ? allBowlStats[b].runs / allBowlStats[b].balls : 999;
+            return ecoA - ecoB;
+        })[0];
+        const bestBowl = players.find(p => p.id === bestBowlId);
+        document.getElementById('bestBowlName').textContent = bestBowl?.name || '—';
+        document.getElementById('bestBowlStat').textContent = bestBowlId
+            ? `${allBowlStats[bestBowlId].wickets}W / ${allBowlStats[bestBowlId].runs}R` : '';
+
+        // MOTM: highest impact — batsman with most runs OR bowler with most wickets
+        const motm = bestBat?.name || bestBowl?.name || '—';
+        document.getElementById('motmName').textContent = motm;
+        document.getElementById('motmStat').textContent = bestBatId
+            ? `${allBatStats[bestBatId]} runs` : (bestBowlId ? `${allBowlStats[bestBowlId].wickets} wkts` : '');
+    };
+
+    // ── Load match list from Firebase ──
+    onValue(ref(rtdb, 'matches'), (snapshot) => {
+        matchPickList.innerHTML = '';
+        if (!snapshot.exists()) {
+            matchPickList.innerHTML = '<p class="text-center text-muted">No matches found.</p>';
+            return;
         }
-        if (!b.isExtra || b.extraType === 'NB') {
-            bowlers[b.bowlerId].runs += b.runs;
-        }
-        if (b.isWicket && b.wicketType !== 'runout') {
-            bowlers[b.bowlerId].wickets += 1;
-        }
+        const matches = snapshot.val();
+        Object.keys(matches).reverse().forEach(key => {
+            const m = matches[key];
+            const name = m.matchDetails?.name || key;
+            const score = m.score ? `${m.score.runs}/${m.score.wickets} (${m.score.overs} ov)` : '—';
+            const inn2 = m.innings1 ? `vs ${m.innings1.score.runs}/${m.innings1.score.wickets}` : '';
+            const item = document.createElement('div');
+            item.className = 'match-pick-item';
+            item.innerHTML = `
+                <div>
+                    <div style="font-weight:700;">${name}</div>
+                    <div style="font-size:0.8rem;color:var(--text-muted);">${m.currentInnings === 2 ? 'Innings 2' : 'Innings 1'} · ${score} ${inn2}</div>
+                </div>
+                <i class="fa-solid fa-chevron-right text-muted"></i>`;
+            item.addEventListener('click', () => {
+                // Listen live to this match
+                onValue(ref(rtdb, 'matches/' + key), (snap) => {
+                    if (snap.exists()) renderStats(snap.val());
+                });
+            });
+            matchPickList.appendChild(item);
+        });
     });
 
-    // Render Batting
-    const batTbody = document.getElementById('battingStatsBody');
-    batTbody.innerHTML = '';
-    Object.keys(batters).forEach(id => {
-        const st = batters[id];
-        const sr = st.balls > 0 ? ((st.runs / st.balls) * 100).toFixed(1) : '0.0';
-        batTbody.innerHTML += `
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                <td style="padding: 10px;">
-                    <div style="font-weight: 600;">${getPName(id)}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">${st.out ? 'Out' : 'Not Out'}</div>
-                </td>
-                <td style="padding: 10px; text-align:center; font-weight: bold;">${st.runs}</td>
-                <td style="padding: 10px; text-align:center;">${st.balls}</td>
-                <td style="padding: 10px; text-align:center;">${st.fours}</td>
-                <td style="padding: 10px; text-align:center;">${st.sixes}</td>
-                <td style="padding: 10px; text-align:center;">${sr}</td>
-            </tr>
-        `;
+    // Back button
+    document.getElementById('backToListBtn')?.addEventListener('click', () => {
+        statsScreen.style.display = 'none';
+        matchSelectScreen.style.display = 'block';
+        switchInningsTab(1);
     });
 
-    // Render Bowling
-    const bowlTbody = document.getElementById('bowlingStatsBody');
-    bowlTbody.innerHTML = '';
-    Object.keys(bowlers).forEach(id => {
-        const st = bowlers[id];
-        const overs = Math.floor(st.balls / 6) + (st.balls % 6) / 10;
-        const eco = overs > 0 ? (st.runs / (st.balls / 6)).toFixed(1) : '0.0';
-        bowlTbody.innerHTML += `
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                <td style="padding: 10px; font-weight: 600;">${getPName(id)}</td>
-                <td style="padding: 10px; text-align:center;">${overs}</td>
-                <td style="padding: 10px; text-align:center;">0</td>
-                <td style="padding: 10px; text-align:center;">${st.runs}</td>
-                <td style="padding: 10px; text-align:center; font-weight: bold; color: var(--text-primary);">${st.wickets}</td>
-                <td style="padding: 10px; text-align:center;">${eco}</td>
-            </tr>
-        `;
-    });
-
-    // Render Teams
-    const teamAList = document.getElementById('teamAList');
-    const teamBList = document.getElementById('teamBList');
-    if (teamAList && teamBList) {
-        teamAList.innerHTML = store.state.teamA?.length > 0 ? 
-            store.state.teamA.map(p => `<li style="padding: 5px 0; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${p.name}</li>`).join('') :
-            '<li class="text-muted" style="font-size: 0.9rem;">Not assigned</li>';
-            
-        teamBList.innerHTML = store.state.teamB?.length > 0 ? 
-            store.state.teamB.map(p => `<li style="padding: 5px 0; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${p.name}</li>`).join('') :
-            '<li class="text-muted" style="font-size: 0.9rem;">Not assigned</li>';
+    // If navigated here from live-score with a match already loaded, auto-open it
+    if (store.state.matchId) {
+        onValue(ref(rtdb, 'matches/' + store.state.matchId), (snap) => {
+            if (snap.exists()) renderStats(snap.val());
+        }, { onlyOnce: true });
     }
 };
 
