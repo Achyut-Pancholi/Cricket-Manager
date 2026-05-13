@@ -311,10 +311,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModals();
     
     const path = window.location.pathname;
-    if (path.includes('index.html') || path === '/' || path === '') initHome();
-    else if (path.includes('match-creation.html')) initMatchCreation();
-    else if (path.includes('player-registration.html')) initPlayerRegistration();
-    else if (path.includes('team-shuffle.html')) initTeamShuffle();
-    else if (path.includes('toss.html')) initToss();
-    else if (path.includes('live-score.html')) initLiveScore();
+    if (path.includes('match-creation')) initMatchCreation();
+    else if (path.includes('player-registration')) initPlayerRegistration();
+    else if (path.includes('team-shuffle')) initTeamShuffle();
+    else if (path.includes('toss')) initToss();
+    else if (path.includes('live-score')) initLiveScore();
+    else initHome(); // Default to home for GitHub Pages subdirectories
 });
