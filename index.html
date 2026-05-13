@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gully Cricket - Home</title>
+    <meta name="description" content="Fast, mobile-first gully cricket scoring app.">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <header class="top-nav">
+            <div class="brand">
+                <i class="fa-solid fa-baseball-bat-ball"></i>
+                <h1>GullyScore</h1>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="profileBtn" aria-label="Profile"><i class="fa-solid fa-user-circle"></i></button>
+            </div>
+        </header>
+
+        <main class="content fade-in">
+            <div class="hero-section">
+                <h2>Ready to Play?</h2>
+                <p>Fastest way to score your gully matches.</p>
+            </div>
+
+            <div class="action-grid">
+                <a href="match-creation.html" class="primary-card pulse-effect">
+                    <i class="fa-solid fa-plus-circle fa-3x"></i>
+                    <h3>New Match</h3>
+                    <p>Setup a new game</p>
+                </a>
+                
+                <a href="player-registration.html" class="secondary-card">
+                    <i class="fa-solid fa-users fa-2x"></i>
+                    <h3>Players</h3>
+                    <p>Manage squad</p>
+                </a>
+
+                <button id="joinMatchBtn" class="secondary-card">
+                    <i class="fa-solid fa-qrcode fa-2x"></i>
+                    <h3>Join Match</h3>
+                    <p>Spectate or Score</p>
+                </button>
+            </div>
+
+            <section class="recent-matches">
+                <div class="section-header">
+                    <h3>Recent Matches</h3>
+                    <a href="match-summary.html" class="link-btn">View All</a>
+                </div>
+                <div class="match-list" id="recentMatchesList">
+                    <!-- Populated by JS -->
+                    <div class="loading-spinner"></div>
+                </div>
+            </section>
+        </main>
+
+        <nav class="bottom-nav">
+            <a href="index.html" class="nav-item active"><i class="fa-solid fa-home"></i><span>Home</span></a>
+            <a href="team-shuffle.html" class="nav-item"><i class="fa-solid fa-shuffle"></i><span>Teams</span></a>
+            <a href="live-score.html" class="nav-item"><i class="fa-solid fa-chart-simple"></i><span>Live</span></a>
+            <a href="match-summary.html" class="nav-item"><i class="fa-solid fa-trophy"></i><span>Stats</span></a>
+        </nav>
+    </div>
+
+    <!-- QR Join Modal -->
+    <div id="qrModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Join Match</h2>
+            <p>Scan QR code or enter match ID</p>
+            <div class="qr-scanner-placeholder">
+                <i class="fa-solid fa-camera fa-4x"></i>
+            </div>
+            <input type="text" id="matchIdInput" class="input-field" placeholder="Enter Match ID">
+            <button class="btn btn-primary btn-block" id="submitJoinMatch">Join</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

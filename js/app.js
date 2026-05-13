@@ -1,0 +1,320 @@
+import { store } from './store.js';
+import { db, rtdb } from './firebase-config.js';
+
+// PWA Service Worker Registration
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.log('SW registration failed:', err);
+        });
+    });
+}
+
+// Utility: Generate short match ID
+const generateMatchId = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+
+// Modal Handlers
+const setupModals = () => {
+    const closeBtns = document.querySelectorAll('.close-btn');
+    closeBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.target.closest('.modal').classList.add('hidden');
+        });
+    });
+};
+
+// ==========================================
+// HOME PAGE LOGIC
+// ==========================================
+const initHome = () => {
+    const joinBtn = document.getElementById('joinMatchBtn');
+    if (joinBtn) {
+        joinBtn.addEventListener('click', () => {
+            document.getElementById('qrModal').classList.remove('hidden');
+        });
+    }
+
+    const recentList = document.getElementById('recentMatchesList');
+    if (recentList) {
+        // Load dummy data for recent matches
+        fetch('data/dummy-data.json')
+            .then(res => res.json())
+            .then(data => {
+                recentList.innerHTML = '';
+                data.recentMatches.forEach(match => {
+                    recentList.innerHTML += `
+                        <div class="secondary-card mb-4" style="text-align: left; display: block;">
+                            <div class="d-flex justify-between align-center">
+                                <div>
+                                    <h4 style="margin:0">${match.name}</h4>
+                                    <small style="color: var(--text-muted)">${match.date}</small>
+                                </div>
+                                <span class="text-primary font-weight-bold">${match.result}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }).catch(() => {
+                recentList.innerHTML = '<p class="text-center text-muted">No recent matches found locally.</p>';
+            });
+    }
+};
+
+// ==========================================
+// MATCH CREATION LOGIC
+// ==========================================
+const initMatchCreation = () => {
+    const form = document.getElementById('matchSetupForm');
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('matchName').value;
+            const overs = document.getElementById('overs').value;
+            const venue = document.getElementById('venue').value;
+            
+            store.update('matchId', generateMatchId());
+            store.update('matchDetails', { name, overs, venue, date: new Date().toISOString() });
+            
+            window.location.href = 'player-registration.html';
+        });
+    }
+};
+
+// ==========================================
+// PLAYER REGISTRATION LOGIC
+// ==========================================
+const initPlayerRegistration = () => {
+    const addBtn = document.getElementById('addPlayerBtn');
+    const modal = document.getElementById('playerModal');
+    const advancedForm = document.getElementById('addPlayerForm');
+    const quickForm = document.getElementById('quickAddForm');
+    const list = document.getElementById('playerList');
+    const countSpan = document.getElementById('playerCount');
+
+    const renderPlayers = () => {
+        if (!list) return;
+        list.innerHTML = '';
+        if (store.state.players.length === 0) {
+            list.innerHTML = '<p class="text-muted text-center" style="padding: 20px;">No players added yet.</p>';
+        }
+        store.state.players.forEach(p => {
+            const stylesText = p.battingStyle || p.bowlingStyle ? `${p.battingStyle || 'Unknown'} | ${p.bowlingStyle && p.bowlingStyle !== 'None' ? p.bowlingStyle : 'Unknown'}` : '';
+            list.innerHTML += `
+                <div class="player-card fade-in mb-4">
+                    <div class="player-info">
+                        <div class="player-avatar">${p.name.charAt(0).toUpperCase()}</div>
+                        <div>
+                            <div style="font-weight: 600;">${p.name}</div>
+                            ${stylesText ? `<div style="font-size: 0.8rem; color: var(--text-muted);">${stylesText}</div>` : ''}
+                        </div>
+                    </div>
+                    <button class="icon-btn text-danger" onclick="removePlayer('${p.id}')"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `;
+        });
+        if (countSpan) countSpan.textContent = store.state.players.length;
+    };
+
+    window.removePlayer = (id) => {
+        store.state.players = store.state.players.filter(p => p.id !== id);
+        store.save();
+        renderPlayers();
+    };
+
+    if (addBtn) {
+        addBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+    }
+
+    if (quickForm) {
+        quickForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('quickPlayerName');
+            if (input.value.trim() !== '') {
+                store.addPlayer({
+                    name: input.value.trim(),
+                    battingStyle: '',
+                    bowlingStyle: ''
+                });
+                input.value = '';
+                renderPlayers();
+            }
+        });
+    }
+
+    if (advancedForm) {
+        advancedForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            store.addPlayer({
+                name: document.getElementById('playerName').value,
+                battingStyle: document.getElementById('battingStyle').value,
+                bowlingStyle: document.getElementById('bowlingStyle').value
+            });
+            modal.classList.add('hidden');
+            advancedForm.reset();
+            renderPlayers();
+        });
+    }
+
+    renderPlayers();
+};
+
+// ==========================================
+// TEAM SHUFFLE LOGIC
+// ==========================================
+const initTeamShuffle = () => {
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const listA = document.getElementById('teamAList');
+    const listB = document.getElementById('teamBList');
+
+    const renderTeams = () => {
+        if (!listA || !listB) return;
+        listA.innerHTML = ''; listB.innerHTML = '';
+        
+        store.state.teamA.forEach(p => {
+            listA.innerHTML += `<div class="player-card mb-4" style="padding: 8px 12px;"><div class="player-info"><div class="player-avatar" style="width: 30px; height: 30px; font-size:0.8rem;">${p.name.charAt(0)}</div><span>${p.name}</span></div></div>`;
+        });
+        store.state.teamB.forEach(p => {
+            listB.innerHTML += `<div class="player-card mb-4" style="padding: 8px 12px;"><div class="player-info"><div class="player-avatar" style="width: 30px; height: 30px; font-size:0.8rem;">${p.name.charAt(0)}</div><span>${p.name}</span></div></div>`;
+        });
+    };
+
+    if (shuffleBtn) {
+        shuffleBtn.addEventListener('click', () => {
+            shuffleBtn.classList.add('pulse-effect');
+            setTimeout(() => shuffleBtn.classList.remove('pulse-effect'), 500);
+            store.shuffleTeams();
+            renderTeams();
+        });
+        
+        if (store.state.teamA.length === 0 && store.state.players.length > 0) {
+            store.shuffleTeams();
+        }
+        renderTeams();
+    }
+};
+
+// ==========================================
+// TOSS LOGIC
+// ==========================================
+const initToss = () => {
+    const coin = document.getElementById('coin');
+    const controls = document.getElementById('tossControls');
+    const result = document.getElementById('tossResult');
+    const winnerText = document.getElementById('winnerText');
+    const proceed = document.getElementById('proceedToMatchContainer');
+
+    const tossCoin = (callerCall) => {
+        if(!coin) return;
+        coin.classList.add('flipping');
+        
+        setTimeout(() => {
+            coin.classList.remove('flipping');
+            const isHeads = Math.random() > 0.5;
+            coin.textContent = isHeads ? 'H' : 'T';
+            const tossWinner = (isHeads && callerCall === 'Heads') || (!isHeads && callerCall === 'Tails') ? 'Team A' : 'Team B';
+            
+            store.update('tossWinner', tossWinner);
+            controls.classList.add('hidden');
+            result.classList.remove('hidden');
+            winnerText.textContent = `${tossWinner} won the toss!`;
+        }, 3000);
+    };
+
+    if (document.getElementById('callHeads')) {
+        document.getElementById('callHeads').addEventListener('click', () => tossCoin('Heads'));
+        document.getElementById('callTails').addEventListener('click', () => tossCoin('Tails'));
+        
+        document.getElementById('chooseBat').addEventListener('click', () => {
+            store.update('tossDecision', 'Bat');
+            proceed.classList.remove('hidden');
+        });
+        document.getElementById('chooseBowl').addEventListener('click', () => {
+            store.update('tossDecision', 'Bowl');
+            proceed.classList.remove('hidden');
+        });
+    }
+};
+
+// ==========================================
+// LIVE SCORE LOGIC
+// ==========================================
+const initLiveScore = () => {
+    const renderScore = () => {
+        const elRuns = document.getElementById('runs');
+        if(!elRuns) return;
+        
+        elRuns.textContent = store.state.score.runs;
+        document.getElementById('wickets').textContent = store.state.score.wickets;
+        document.getElementById('overs').textContent = store.state.score.overs;
+        if (store.state.matchDetails) {
+            document.getElementById('totalOvers').textContent = store.state.matchDetails.overs;
+        }
+
+        // Render over tracker
+        const tracker = document.getElementById('overTracker');
+        tracker.innerHTML = '';
+        
+        // Get current over balls
+        const totalValidBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
+        const currentOverBalls = totalValidBalls % 6;
+        const ballsToShow = store.state.history.slice(- (currentOverBalls + 2)); // Show a few recent
+        
+        ballsToShow.forEach(b => {
+            let cls = ''; let txt = b.runs;
+            if(b.isWicket) { cls = 'w'; txt = 'W'; }
+            else if(b.runs === 4) { cls = 'b4'; }
+            else if(b.runs === 6) { cls = 'b6'; }
+            else if(b.isExtra) { txt = b.extraType; }
+            tracker.innerHTML += `<div class="ball-circle fade-in ${cls}">${txt}</div>`;
+        });
+        tracker.scrollLeft = tracker.scrollWidth;
+        
+        // Push to Firebase Realtime if available
+        if(window.rtdb && store.state.matchId) {
+            // update(ref(rtdb, 'matches/' + store.state.matchId), store.state);
+        }
+    };
+
+    // Bind Score Buttons
+    document.querySelectorAll('.score-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const runs = parseInt(e.target.dataset.runs);
+            store.recordBall(runs);
+            renderScore();
+        });
+    });
+
+    if (document.getElementById('undoBtn')) {
+        document.getElementById('undoBtn').addEventListener('click', () => {
+            store.undoLastBall();
+            renderScore();
+        });
+
+        document.getElementById('btnWide').addEventListener('click', () => { store.recordBall(0, true, 'WD'); renderScore(); });
+        document.getElementById('btnNoBall').addEventListener('click', () => { store.recordBall(0, true, 'NB'); renderScore(); });
+        document.getElementById('btnWicket').addEventListener('click', () => { 
+            document.getElementById('wicketModal').classList.remove('hidden');
+        });
+        
+        document.getElementById('confirmWicket').addEventListener('click', () => {
+            store.recordBall(0, false, '', true);
+            document.getElementById('wicketModal').classList.add('hidden');
+            renderScore();
+        });
+        
+        renderScore();
+    }
+};
+
+// Initialize App
+document.addEventListener('DOMContentLoaded', () => {
+    setupModals();
+    
+    const path = window.location.pathname;
+    if (path.includes('index.html') || path === '/' || path === '') initHome();
+    else if (path.includes('match-creation.html')) initMatchCreation();
+    else if (path.includes('player-registration.html')) initPlayerRegistration();
+    else if (path.includes('team-shuffle.html')) initTeamShuffle();
+    else if (path.includes('toss.html')) initToss();
+    else if (path.includes('live-score.html')) initLiveScore();
+});

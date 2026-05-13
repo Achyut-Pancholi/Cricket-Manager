@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Player Registration - GullyScore</title>
+    <link rel="stylesheet" href="css/style.css">
+    <meta name="theme-color" content="#121212">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="top-nav">
+            <a href="match-creation.html" class="icon-btn"><i class="fa-solid fa-arrow-left"></i></a>
+            <div class="brand"><h2>Players</h2></div>
+            <button class="icon-btn" id="addPlayerBtn" title="Advanced Options"><i class="fa-solid fa-sliders"></i></button>
+        </header>
+
+        <main class="content fade-in">
+            <div class="page-header mb-4">
+                <p>Available players today: <strong id="playerCount" class="text-primary" style="font-size: 1.2rem;">0</strong></p>
+            </div>
+
+            <form id="quickAddForm" class="d-flex mb-4" style="gap: 8px;">
+                <input type="text" id="quickPlayerName" class="input-field" placeholder="Enter player name" required style="flex: 1; padding: 12px;">
+                <button type="submit" class="btn btn-secondary" style="padding: 12px 16px;"><i class="fa-solid fa-plus"></i></button>
+            </form>
+
+            <div class="player-list" id="playerList">
+                <!-- Players populated here -->
+            </div>
+            
+            <div class="mt-4">
+                <a href="team-shuffle.html" class="btn btn-primary btn-block">Next: Shuffle Teams</a>
+            </div>
+        </main>
+    </div>
+
+    <!-- Advanced Add Player Modal -->
+    <div id="playerModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn" id="closePlayerModal">&times;</span>
+            <h2>Advanced Details</h2>
+            <form id="addPlayerForm" class="mt-4">
+                <div class="input-group">
+                    <label>Name</label>
+                    <input type="text" id="playerName" class="input-field" required>
+                </div>
+                <div class="input-group">
+                    <label>Batting Style</label>
+                    <select id="battingStyle" class="input-field">
+                        <option value="RHB">Right Hand Bat</option>
+                        <option value="LHB">Left Hand Bat</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Bowling Style</label>
+                    <select id="bowlingStyle" class="input-field">
+                        <option value="Right-arm Fast">Right-arm Fast</option>
+                        <option value="Right-arm Spin">Right-arm Spin</option>
+                        <option value="Left-arm Fast">Left-arm Fast</option>
+                        <option value="Left-arm Spin">Left-arm Spin</option>
+                        <option value="None">None</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block mt-4">Save Player</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

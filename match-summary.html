@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Match Summary - GullyScore</title>
+    <link rel="stylesheet" href="css/style.css">
+    <meta name="theme-color" content="#121212">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="top-nav">
+            <a href="index.html" class="icon-btn"><i class="fa-solid fa-home"></i></a>
+            <div class="brand"><h2>Match Summary</h2></div>
+            <button class="icon-btn" id="shareSummaryBtn"><i class="fa-solid fa-share-nodes"></i></button>
+        </header>
+
+        <main class="content fade-in">
+            <div class="score-board text-center">
+                <h3 class="text-primary mb-4" id="matchResultText">Team A won by 15 runs</h3>
+                
+                <div class="d-flex justify-between mt-4">
+                    <div style="text-align: left;">
+                        <h4>Team A</h4>
+                        <div class="main-score" style="font-size: 2rem;">
+                            <span id="teamAScore">65</span>/<span id="teamAWickets">4</span>
+                        </div>
+                        <div class="overs-info">(<span id="teamAOvers">5.0</span>)</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <h4>Team B</h4>
+                        <div class="main-score" style="font-size: 2rem;">
+                            <span id="teamBScore">50</span>/<span id="teamBWickets">5</span>
+                        </div>
+                        <div class="overs-info">(<span id="teamBOvers">5.0</span>)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-grid mt-4">
+                <div class="secondary-card">
+                    <i class="fa-solid fa-crown fa-2x text-accent"></i>
+                    <h3>Man of the Match</h3>
+                    <p id="motmName" class="text-primary font-weight-bold" style="font-size: 1.1rem;">Player 1</p>
+                </div>
+                
+                <div class="secondary-card">
+                    <i class="fa-solid fa-star fa-2x" style="color: #FCD34D;"></i>
+                    <h3>Best Bowler</h3>
+                    <p id="bestBowlerName" class="text-primary font-weight-bold" style="font-size: 1.1rem;">Player 2</p>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h3 class="mb-4">Full Scorecard</h3>
+                <div id="scorecardContainer">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+            
+            <div class="mt-4 pb-4">
+                <a href="index.html" class="btn btn-primary btn-block">Back to Home</a>
+            </div>
+        </main>
+    </div>
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

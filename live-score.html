@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Live Score - GullyScore</title>
+    <link rel="stylesheet" href="css/style.css">
+    <meta name="theme-color" content="#121212">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="top-nav">
+            <div class="brand">
+                <i class="fa-solid fa-circle text-danger blink"></i>
+                <h2>Live</h2>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="undoBtn" aria-label="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+                <button class="icon-btn" id="shareBtn" aria-label="Share"><i class="fa-solid fa-share-nodes"></i></button>
+            </div>
+        </header>
+
+        <main class="content fade-in" style="padding-bottom: 20px;">
+            <div class="score-board">
+                <div style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Team A Batting</div>
+                <div class="main-score">
+                    <span id="runs">0</span><span style="color: var(--text-muted); font-size: 2.5rem;">/</span><span id="wickets">0</span>
+                </div>
+                <div class="overs-info">
+                    Overs: <strong style="color: var(--text-primary);" id="overs">0.0</strong> / <span id="totalOvers">5</span>
+                </div>
+                
+                <div class="crr-req hidden" id="targetSection">
+                    <div>CRR: <span id="crr">0.00</span></div>
+                    <div>Target: <strong class="text-primary" id="target">0</strong></div>
+                    <div>REQ: <span id="reqRate">0.00</span></div>
+                </div>
+                
+                <div class="over-tracker mt-4" id="overTracker">
+                    <!-- Balls inserted dynamically -->
+                </div>
+            </div>
+
+            <div class="current-players">
+                <div class="batter-row striker">
+                    <div>
+                        <div class="d-flex align-center" style="gap: 8px;">
+                            <i class="fa-solid fa-baseball-bat-ball text-primary"></i>
+                            <span id="strikerName">Batter 1</span>
+                        </div>
+                    </div>
+                    <div class="stats-text"><span id="strikerRuns">0</span> (<span id="strikerBalls">0</span>)</div>
+                </div>
+                <div class="batter-row">
+                    <div>
+                        <span id="nonStrikerName">Batter 2</span>
+                    </div>
+                    <div class="stats-text"><span id="nonStrikerRuns">0</span> (<span id="nonStrikerBalls">0</span>)</div>
+                </div>
+                <div class="bowler-row mt-4">
+                    <div>
+                        <div class="d-flex align-center" style="gap: 8px;">
+                            <i class="fa-solid fa-baseball text-secondary"></i>
+                            <span id="bowlerName">Bowler 1</span>
+                        </div>
+                    </div>
+                    <div class="stats-text"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span> (<span id="bowlerOvers">0.0</span>)</div>
+                </div>
+            </div>
+
+            <div class="scoring-pad">
+                <button class="score-btn" data-runs="0">0</button>
+                <button class="score-btn" data-runs="1">1</button>
+                <button class="score-btn" data-runs="2">2</button>
+                <button class="score-btn" data-runs="3">3</button>
+                <button class="score-btn boundary" data-runs="4">4</button>
+                <button class="score-btn six" data-runs="6">6</button>
+            </div>
+            
+            <div class="extra-controls">
+                <button class="extra-btn" id="btnWide">WD</button>
+                <button class="extra-btn" id="btnNoBall">NB</button>
+                <button class="extra-btn" id="btnLegBye">LB</button>
+                <button class="extra-btn wicket" id="btnWicket">W</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Wicket Modal -->
+    <div id="wicketModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="text-danger mb-4">WICKET!</h2>
+            <div class="input-group">
+                <label>Dismissal Type</label>
+                <select id="wicketType" class="input-field">
+                    <option value="bowled">Bowled</option>
+                    <option value="caught">Caught</option>
+                    <option value="runout">Run Out</option>
+                    <option value="lbw">LBW</option>
+                </select>
+            </div>
+            <div class="input-group mt-4">
+                <label>New Batsman</label>
+                <select id="newBatsman" class="input-field">
+                    <!-- Options populated via JS -->
+                </select>
+            </div>
+            <button class="btn btn-danger btn-block mt-4" id="confirmWicket">Confirm Wicket</button>
+        </div>
+    </div>
+
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

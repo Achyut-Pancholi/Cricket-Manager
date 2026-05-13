@@ -1,0 +1,26 @@
+{
+  "recentMatches": [
+    {
+      "id": "M123",
+      "name": "Sunday Morning Bash",
+      "date": "Oct 15, 2023",
+      "result": "Team A won by 15 runs",
+      "format": "5 Overs"
+    },
+    {
+      "id": "M124",
+      "name": "Street 4 Derby",
+      "date": "Oct 12, 2023",
+      "result": "Team B won by 2 wickets",
+      "format": "10 Overs"
+    }
+  ],
+  "samplePlayers": [
+    {"name": "Rahul", "battingStyle": "RHB", "bowlingStyle": "Right-arm Fast"},
+    {"name": "Virat", "battingStyle": "RHB", "bowlingStyle": "None"},
+    {"name": "Rohit", "battingStyle": "RHB", "bowlingStyle": "Right-arm Spin"},
+    {"name": "Jadeja", "battingStyle": "LHB", "bowlingStyle": "Left-arm Spin"},
+    {"name": "Bumrah", "battingStyle": "RHB", "bowlingStyle": "Right-arm Fast"},
+    {"name": "Surya", "battingStyle": "RHB", "bowlingStyle": "None"}
+  ]
+}
