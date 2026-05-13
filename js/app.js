@@ -69,12 +69,6 @@ const initHome = () => {
                 } else {
                     recentList.innerHTML = '<p class="text-center text-muted">No matches found. Create one!</p>';
                 }
-                recentList.innerHTML += `
-                <a href="manage-players.html" class="primary-card" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: #fff;">
-                    <i class="fa-solid fa-users fa-2x" style="color: #fff;"></i>
-                    <h3 style="color: #fff;">Manage Players</h3>
-                    <p style="color: rgba(255,255,255,0.8);">Global roster &amp; availability</p>
-                </a>`;
             }, (error) => {
                 recentList.innerHTML = '<p class="text-center text-danger">Error loading matches.</p>';
             });
