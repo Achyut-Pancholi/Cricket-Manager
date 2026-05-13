@@ -51,10 +51,14 @@ const initHome = () => {
                     Object.keys(matches).forEach(key => {
                         const m = matches[key];
                         if (!m.matchDetails) return;
+                        const isLive = !m.matchEnded;
                         recentList.innerHTML += `
                             <div class="secondary-card mb-4" style="text-align: left; display: block; position: relative;">
                                 <div style="cursor: pointer; padding-right: 40px;" onclick="loadMatch('${key}')">
-                                    <h4 style="margin:0">${m.matchDetails.name}</h4>
+                                    <div class="d-flex align-center" style="gap: 12px; margin-bottom: 4px;">
+                                        <h4 style="margin:0">${m.matchDetails.name}</h4>
+                                        ${isLive ? '<span class="badge badge-live">LIVE</span>' : ''}
+                                    </div>
                                     <small style="color: var(--text-muted)">${m.matchDetails.overs} Overs</small>
                                 </div>
                                 <button onclick="deleteMatch(event, '${key}')" class="icon-btn text-danger" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); z-index: 10; padding: 5px;">
@@ -78,9 +82,14 @@ const initHome = () => {
 window.loadMatch = (matchId) => {
     get(ref(rtdb, 'matches/' + matchId)).then((snapshot) => {
         if(snapshot.exists()) {
-            store.state = snapshot.val();
+            const m = snapshot.val();
+            store.state = m;
             store.save();
-            window.location.href = 'live-score.html';
+            if (m.matchEnded) {
+                window.location.href = 'match-summary.html';
+            } else {
+                window.location.href = 'live-score.html';
+            }
         }
     });
 };
@@ -268,6 +277,37 @@ const initToss = () => {
 // LIVE SCORE LOGIC
 // ==========================================
 const initLiveScore = () => {
+    const renderNoActiveMatch = () => {
+        const content = document.querySelector('.content');
+        if (content) {
+            content.innerHTML = `
+                <div class="text-center fade-in" style="padding: 60px 20px;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">🏏</div>
+                    <h2 class="mb-2">No Active Live Match</h2>
+                    <p class="text-muted mb-6">There are no matches currently in progress.</p>
+                    <a href="match-summary.html" class="btn btn-primary btn-block mb-4">View Past Scorecards</a>
+                    <a href="index.html" class="btn btn-secondary btn-block">Back to Home</a>
+                </div>
+            `;
+        }
+    };
+
+    if (!store.state.matchId || store.state.matchEnded) {
+        get(ref(rtdb, 'matches')).then((snapshot) => {
+            if (snapshot.exists()) {
+                const matches = snapshot.val();
+                const activeId = Object.keys(matches).find(id => !matches[id].matchEnded);
+                if (activeId) {
+                    loadMatch(activeId);
+                } else {
+                    renderNoActiveMatch();
+                }
+            } else {
+                renderNoActiveMatch();
+            }
+        });
+        return;
+    }
     const shareBtn = document.getElementById('shareBtn') || document.getElementById('shareMatchBtn');
     if (shareBtn) {
         shareBtn.addEventListener('click', () => {
@@ -616,6 +656,8 @@ const initLiveScore = () => {
             renderScore();
         } else {
             // Match over — show complete overlay
+            store.state.matchEnded = true;
+            store.save();
             showMatchComplete();
         }
     };

@@ -782,3 +782,32 @@ h1, h2, h3, h4 {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Badge Styles */
+.badge {
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-live {
+    background: rgba(239, 68, 68, 0.15);
+    color: #FF4B2B;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.badge-live::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: #FF4B2B;
+    border-radius: 50%;
+    display: inline-block;
+    animation: blink 1s infinite;
+}
