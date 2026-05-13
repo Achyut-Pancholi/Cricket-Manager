@@ -51,7 +51,7 @@ const initHome = () => {
                     Object.keys(matches).forEach(key => {
                         const m = matches[key];
                         if (!m.matchDetails) return;
-                        const isLive = !m.matchEnded;
+                        const isLive = m.matchEnded === false;
                         recentList.innerHTML += `
                             <div class="secondary-card mb-4" style="text-align: left; display: block; position: relative;">
                                 <div style="cursor: pointer; padding-right: 40px;" onclick="loadMatch('${key}')">
@@ -124,6 +124,7 @@ const initMatchCreation = () => {
 
             store.update('matchId', generateMatchId());
             store.update('matchDetails', { name, overs, venue, teamAName, teamBName, date: new Date().toISOString() });
+            store.update('matchEnded', false);
 
             window.location.href = 'player-registration.html';
         });
