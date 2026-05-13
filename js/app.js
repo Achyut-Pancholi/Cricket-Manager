@@ -1046,7 +1046,18 @@ const initMatchSummary = () => {
         // ── Result calculation ──
         let resultText = 'In Progress';
         let resultSub = '';
-        if (inn2Score && inn1Score) {
+        if (state.matchEnded && inn2Score && inn1Score) {
+            const target = inn1Score.runs + 1;
+            if (inn2Score.runs >= target) {
+                const wktsLeft = (inn1Bowling?.length || players.length / 2) - inn2Score.wickets;
+                resultText = `${inn2BatLabel} Won by ${wktsLeft} wicket${wktsLeft !== 1 ? 's' : ''}`;
+                resultSub = `Target: ${target} | Chased in ${inn2Score.overs} overs`;
+            } else {
+                const margin = inn1Score.runs - inn2Score.runs;
+                resultText = `${inn1BatLabel} Won by ${margin} run${margin !== 1 ? 's' : ''}`;
+                resultSub = `${inn2BatLabel} fell short of target ${target}`;
+            }
+        } else if (inn2Score && inn1Score) {
             const target = inn1Score.runs + 1;
             if (inn2Score.runs >= target) {
                 const wktsLeft = (inn1Bowling?.length || players.length / 2) - inn2Score.wickets;
@@ -1068,22 +1079,15 @@ const initMatchSummary = () => {
         document.getElementById('resultSubtext').textContent = resultSub;
 
         // ── Awards (restricted to winning team where result is known) ──
-        // Determine winning team player IDs
         let winnerIds = null;
         if (inn2Score && inn1Score) {
             const target = inn1Score.runs + 1;
             if (inn2Score.runs >= target) {
-                // inn2 batting team won — their batters + inn1 bowlers
-                winnerIds = [...inn1Bowling.map(p => p.id), ...inn1Batting.map(p => p.id)];
-                // Actually MOTM can be bat or bowl from winning side:
-                // winning batting team = inn1Bowling (they bat in inn2)
+                // Team B (chasing team) won
                 winnerIds = inn1Bowling.map(p => p.id);
-            } else {
-                const validBalls = inn2History.filter(b => !b.isExtra || b.extraType === 'LB').length;
-                if (Math.floor(validBalls / 6) >= parseFloat(state.matchDetails?.overs || 99)) {
-                    // inn1 batting team won
-                    winnerIds = inn1Batting.map(p => p.id);
-                }
+            } else if (state.matchEnded || parseFloat(inn2Score.overs) >= parseFloat(state.matchDetails?.overs || 99)) {
+                // Team A (batting first) won
+                winnerIds = inn1Batting.map(p => p.id);
             }
         }
 
