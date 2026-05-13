@@ -12,6 +12,7 @@ export const store = {
         tossWinner: null,
         tossDecision: null,
         currentInnings: 1,
+        innings1: null, // snapshot of innings 1 score & history
         score: {
             runs: 0,
             wickets: 0,
@@ -22,7 +23,7 @@ export const store = {
         striker: null,
         nonStriker: null,
         bowler: null,
-        history: [] // Ball by ball history
+        history: [] // Ball by ball history (current innings)
     },
 
     init() {
@@ -110,6 +111,27 @@ export const store = {
         this.save();
     },
     
+    startInnings2() {
+        // Snapshot innings 1
+        this.state.innings1 = {
+            score: { ...this.state.score },
+            history: [...this.state.history]
+        };
+        
+        // Set target for innings 2
+        const target = this.state.score.runs + 1;
+        
+        // Reset for innings 2
+        this.state.currentInnings = 2;
+        this.state.score = { runs: 0, wickets: 0, balls: 0, overs: 0, target };
+        this.state.history = [];
+        this.state.striker = null;
+        this.state.nonStriker = null;
+        this.state.bowler = null;
+        
+        this.save();
+    },
+
     clear() {
         localStorage.removeItem('gullyscore_state');
         // Reset state

@@ -25,8 +25,11 @@
         </header>
 
         <main class="content fade-in" style="padding-bottom: 20px;">
+            <!-- Innings Status Banner -->
+            <div id="inningsBanner" style="display:none; text-align:center; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; margin-bottom: 10px;"></div>
+
             <div class="score-board">
-                <div style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Team A Batting</div>
+                <div style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;" id="battingTeamLabel">Innings 1</div>
                 <div class="main-score">
                     <span id="runs">0</span><span style="color: var(--text-muted); font-size: 2.5rem;">/</span><span id="wickets">0</span>
                 </div>
@@ -34,10 +37,10 @@
                     Overs: <strong style="color: var(--text-primary);" id="overs">0.0</strong> / <span id="totalOvers">5</span>
                 </div>
                 
-                <div class="crr-req hidden" id="targetSection">
-                    <div>CRR: <span id="crr">0.00</span></div>
-                    <div>Target: <strong class="text-primary" id="target">0</strong></div>
-                    <div>REQ: <span id="reqRate">0.00</span></div>
+                <div class="crr-req" style="display: flex; justify-content: space-around; margin-top: 10px; font-size: 0.85rem;">
+                    <div>CRR: <strong id="crrValue">0.00</strong></div>
+                    <div>Target: <strong id="targetValue" style="color: #F59E0B;">—</strong></div>
+                    <div>REQ: <strong id="reqrValue">—</strong></div>
                 </div>
                 
                 <div class="over-tracker mt-4" id="overTracker">
