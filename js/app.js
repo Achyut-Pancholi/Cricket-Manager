@@ -23,7 +23,7 @@ const setupModals = () => {
     });
 };
 
-import { ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { ref, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
 // ==========================================
 // HOME PAGE LOGIC
@@ -52,14 +52,17 @@ const initHome = () => {
                         const m = matches[key];
                         if (!m.matchDetails) return;
                         recentList.innerHTML += `
-                            <div class="secondary-card mb-4" style="text-align: left; display: block; cursor: pointer;" onclick="loadMatch('${key}')">
-                                <div class="d-flex justify-between align-center">
+                            <div class="secondary-card mb-4" style="text-align: left; display: block; position: relative;">
+                                <div class="d-flex justify-between align-center" style="cursor: pointer; padding-right: 40px;" onclick="loadMatch('${key}')">
                                     <div>
                                         <h4 style="margin:0">${m.matchDetails.name}</h4>
                                         <small style="color: var(--text-muted)">${m.matchDetails.overs} Overs</small>
                                     </div>
                                     <span class="text-primary font-weight-bold">${m.score.runs}/${m.score.wickets}</span>
                                 </div>
+                                <button onclick="deleteMatch(event, '${key}')" class="icon-btn text-danger" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); z-index: 10; padding: 5px;">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
                             </div>
                         `;
                     });
@@ -83,6 +86,20 @@ window.loadMatch = (matchId) => {
             window.location.href = 'live-score.html';
         }
     });
+};
+
+window.deleteMatch = (e, matchId) => {
+    e.stopPropagation(); // Prevent loadMatch from firing
+    if (confirm("Are you sure you want to completely delete this match?")) {
+        remove(ref(rtdb, 'matches/' + matchId)).then(() => {
+            if(store.state.matchId === matchId) {
+                store.clear();
+            }
+        }).catch(err => {
+            alert('Error deleting match');
+            console.error(err);
+        });
+    }
 };
 
 // ==========================================
