@@ -8,6 +8,55 @@
     <meta name="theme-color" content="#121212">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Commentary Ticker */
+        .commentary-ticker {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+        }
+        .commentary-ticker .comm-icon { font-size: 1rem; flex-shrink: 0; }
+        .commentary-ticker .comm-text { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        /* Match Complete Overlay */
+        .match-complete-overlay {
+            position: fixed; inset: 0; z-index: 999;
+            background: rgba(0,0,0,0.92);
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .match-complete-card {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            border: 1px solid rgba(0,242,254,0.3);
+            border-radius: 20px;
+            padding: 32px 24px;
+            text-align: center;
+            width: 100%;
+            max-width: 380px;
+            animation: slideUp 0.4s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(40px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+        .winner-trophy { font-size: 4rem; margin-bottom: 8px; animation: bounce 1s infinite; }
+        @keyframes bounce { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+        .mc-result { font-size: 1.4rem; font-weight: 800; color: var(--primary); margin: 8px 0; }
+        .mc-sub    { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px; }
+        .mc-scores { display: flex; gap: 10px; margin: 16px 0; }
+        .mc-score-box { flex:1; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px; }
+        .mc-score-box .t { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; }
+        .mc-score-box .s { font-size: 1.4rem; font-weight: 800; }
+        .mc-awards { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 12px; margin-bottom: 20px; }
+        .mc-award-row { display:flex; justify-content:space-between; align-items:center; padding: 4px 0; font-size:0.85rem; }
+        .mc-award-row .label { color: var(--text-muted); }
+        .mc-award-row .val   { font-weight: 700; color: var(--primary); }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -46,6 +95,12 @@
                 <div class="over-tracker mt-4" id="overTracker">
                     <!-- Balls inserted dynamically -->
                 </div>
+            </div>
+
+            <!-- Commentary Ticker -->
+            <div class="commentary-ticker" id="commentaryTicker">
+                <span class="comm-icon">🏏</span>
+                <span class="comm-text" id="commText">Match started. Let's play!</span>
             </div>
 
             <div class="current-players">
@@ -122,10 +177,11 @@
             <div class="input-group">
                 <label>Dismissal Type</label>
                 <select id="wicketType" class="input-field">
-                    <option value="bowled">Bowled</option>
-                    <option value="caught">Caught</option>
-                    <option value="runout">Run Out</option>
-                    <option value="lbw">LBW</option>
+                    <option value="Bowled">Bowled</option>
+                    <option value="Caught">Caught</option>
+                    <option value="Run Out">Run Out</option>
+                    <option value="LBW">LBW</option>
+                    <option value="Retired">Retired Hurt</option>
                 </select>
             </div>
             <div class="input-group mt-4">
@@ -134,7 +190,7 @@
                     <!-- Options populated via JS -->
                 </select>
             </div>
-            <button class="btn btn-danger btn-block mt-4" id="confirmWicket">Confirm Wicket</button>
+            <button class="btn btn-danger btn-block mt-4" id="confirmWicket">Confirm</button>
         </div>
     </div>
 
@@ -145,11 +201,9 @@
             <h2 class="mb-2 text-primary" id="shareMatchName">Match Name</h2>
             <p class="text-muted mb-4">Scan QR or share the URL to join</p>
             <div id="shareQrCode" style="background: white; padding: 10px; border-radius: 10px; display: inline-block; margin-bottom: 20px;"></div>
-            
             <div style="text-align: left; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
                 <p style="margin-bottom: 5px; font-size: 0.9rem; color: var(--text-muted);">Match ID:</p>
                 <p><strong id="shareMatchIdText" style="font-size: 1.2rem; letter-spacing: 2px;"></strong></p>
-                
                 <p style="margin-bottom: 5px; margin-top: 15px; font-size: 0.9rem; color: var(--text-muted);">Direct Link:</p>
                 <div style="display: flex; gap: 10px;">
                     <input type="text" id="shareUrlInput" class="input-field" readonly style="margin: 0; padding: 8px; font-size: 0.8rem;">
@@ -171,6 +225,41 @@
                 </select>
             </div>
             <button class="btn btn-primary btn-block mt-4" id="confirmNewBowler">Start Next Over</button>
+        </div>
+    </div>
+
+    <!-- Match Complete Overlay -->
+    <div id="matchCompleteOverlay" class="match-complete-overlay" style="display:none;">
+        <div class="match-complete-card">
+            <div class="winner-trophy">🏆</div>
+            <div class="mc-result" id="mcResult">Team A Won!</div>
+            <div class="mc-sub" id="mcSub">by 15 runs</div>
+            <div class="mc-scores">
+                <div class="mc-score-box">
+                    <div class="t" id="mcInn1Label">Innings 1</div>
+                    <div class="s" id="mcInn1Score">—</div>
+                </div>
+                <div class="mc-score-box">
+                    <div class="t" id="mcInn2Label">Innings 2</div>
+                    <div class="s" id="mcInn2Score">—</div>
+                </div>
+            </div>
+            <div class="mc-awards">
+                <div class="mc-award-row">
+                    <span class="label">🏆 Man of the Match</span>
+                    <span class="val" id="mcMotm">—</span>
+                </div>
+                <div class="mc-award-row">
+                    <span class="label">🏏 Top Scorer</span>
+                    <span class="val" id="mcTopBat">—</span>
+                </div>
+                <div class="mc-award-row">
+                    <span class="label">🎯 Best Bowler</span>
+                    <span class="val" id="mcTopBowl">—</span>
+                </div>
+            </div>
+            <a href="match-summary.html" class="btn btn-primary btn-block" style="margin-bottom:10px;">View Full Scorecard</a>
+            <a href="index.html" class="btn btn-secondary btn-block">Back to Home</a>
         </div>
     </div>
 

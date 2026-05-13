@@ -107,13 +107,15 @@ const initMatchCreation = () => {
     if (form) {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-            const name = document.getElementById('matchName').value;
+            const name  = document.getElementById('matchName').value;
             const overs = document.getElementById('overs').value;
             const venue = document.getElementById('venue').value;
-            
+            const teamAName = document.getElementById('teamAName')?.value.trim() || 'Team A';
+            const teamBName = document.getElementById('teamBName')?.value.trim() || 'Team B';
+
             store.update('matchId', generateMatchId());
-            store.update('matchDetails', { name, overs, venue, date: new Date().toISOString() });
-            
+            store.update('matchDetails', { name, overs, venue, teamAName, teamBName, date: new Date().toISOString() });
+
             window.location.href = 'player-registration.html';
         });
     }
@@ -513,22 +515,108 @@ const initLiveScore = () => {
         });
     }
 
-    // Innings-end handler — called when overs exhausted or all-out
+    // ── Commentary generator ──
+    const getCommentary = (ball) => {
+        const name = store.state.striker?.name || 'Batsman';
+        const bowler = store.state.bowler?.name || 'Bowler';
+        if (ball.isWicket && ball.wicketType === 'Retired') return { icon: '🏥', text: `${name} retires hurt.` };
+        if (ball.isWicket) {
+            const msgs = { Bowled: `BOWLED! ${name} is clean bowled by ${bowler}!`, Caught: `CAUGHT! ${name} holes out. ${bowler} takes the wicket!`, 'Run Out': `RUN OUT! What a mix-up in the middle!`, LBW: `LBW! Plumb in front. ${name} has to walk.` };
+            return { icon: '💥', text: msgs[ball.wicketType] || `OUT! ${name} is dismissed.` };
+        }
+        if (ball.isExtra) {
+            if (ball.extraType === 'WD') return { icon: '➡️', text: `Wide ball from ${bowler}. Extra run added.` };
+            if (ball.extraType === 'NB') return { icon: '🚫', text: `No ball! Free hit coming up.` };
+            if (ball.extraType === 'LB') return { icon: '🦵', text: `Leg bye! Ball clips the pad.` };
+        }
+        if (ball.runs === 6) return { icon: '🚀', text: `SIX! ${name} sends it into the stands!` };
+        if (ball.runs === 4) return { icon: '🏏', text: `FOUR! ${name} finds the boundary!` };
+        if (ball.runs === 3) return { icon: '🏃', text: `Three runs! Great running between the wickets.` };
+        if (ball.runs === 2) return { icon: '✌️', text: `Two runs to ${name}.` };
+        if (ball.runs === 1) return { icon: '•', text: `Single taken. Strike rotated.` };
+        return { icon: '🔵', text: `Dot ball from ${bowler}. Good delivery!` };
+    };
+
+    const showCommentary = (ball) => {
+        const ticker = document.getElementById('commentaryTicker');
+        const commText = document.getElementById('commText');
+        if (!ticker || !commText) return;
+        const { icon, text } = getCommentary(ball);
+        ticker.querySelector('.comm-icon').textContent = icon;
+        commText.textContent = text;
+        ticker.style.borderColor = ball.isWicket ? 'rgba(239,68,68,0.5)' : ball.runs === 6 ? 'rgba(0,242,254,0.4)' : ball.runs === 4 ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.07)';
+    };
+
+    // ── Match complete overlay ──
+    const showMatchComplete = () => {
+        const overlay = document.getElementById('matchCompleteOverlay');
+        if (!overlay) return;
+        const s = store.state;
+        const inn1Score = s.innings1?.score;
+        const inn2Score = s.score;
+        const players = s.players || [];
+        const teamA = s.teamA || [], teamB = s.teamB || [];
+        const md = s.matchDetails || {};
+
+        // Team labels
+        const inn1Bat = s.tossDecision === 'Bat' ? (s.tossWinner === 'Team A' ? teamA : teamB) : (s.tossWinner === 'Team A' ? teamB : teamA);
+        const inn1BatName = inn1Bat === teamA ? (md.teamAName || 'Team A') : (md.teamBName || 'Team B');
+        const inn2BatName = inn1BatName === (md.teamAName || 'Team A') ? (md.teamBName || 'Team B') : (md.teamAName || 'Team A');
+
+        document.getElementById('mcInn1Label').textContent = inn1BatName;
+        document.getElementById('mcInn1Score').textContent = inn1Score ? `${inn1Score.runs}/${inn1Score.wickets}` : '—';
+        document.getElementById('mcInn2Label').textContent = inn2BatName;
+        document.getElementById('mcInn2Score').textContent = inn2Score ? `${inn2Score.runs}/${inn2Score.wickets}` : '—';
+
+        // Result text
+        let result = '', sub = '';
+        if (inn1Score && inn2Score) {
+            const target = inn1Score.runs + 1;
+            if (inn2Score.runs >= target) {
+                const wl = (s.innings1 ? teamA.length : teamB.length) - inn2Score.wickets;
+                result = `🏆 ${inn2BatName} Won!`;
+                sub = `by ${wl} wicket${wl !== 1 ? 's' : ''}`;
+            } else {
+                const margin = inn1Score.runs - inn2Score.runs;
+                result = `🏆 ${inn1BatName} Won!`;
+                sub = `by ${margin} run${margin !== 1 ? 's' : ''}`;
+            }
+        }
+        document.getElementById('mcResult').textContent = result;
+        document.getElementById('mcSub').textContent = sub;
+
+        // Quick awards from history
+        const allH = [...(s.innings1?.history || []), ...(s.history || [])];
+        const batRuns = {};
+        allH.forEach(b => { if (!b.strikerId || b.isExtra || b.isWicket) return; if (!batRuns[b.strikerId]) batRuns[b.strikerId] = 0; batRuns[b.strikerId] += b.runs; });
+        const topBatId = Object.keys(batRuns).sort((a,b) => batRuns[b]-batRuns[a])[0];
+        const topBat = players.find(p => p.id === topBatId);
+
+        const bowlStats = {};
+        allH.forEach(b => { if (!b.bowlerId) return; if (!bowlStats[b.bowlerId]) bowlStats[b.bowlerId] = {w:0}; if (b.isWicket && b.wicketType !== 'Run Out') bowlStats[b.bowlerId].w++; });
+        const topBowlId = Object.keys(bowlStats).sort((a,b) => bowlStats[b].w - bowlStats[a].w)[0];
+        const topBowl = players.find(p => p.id === topBowlId);
+
+        document.getElementById('mcTopBat').textContent  = topBat  ? `${topBat.name} (${batRuns[topBatId]})`  : '—';
+        document.getElementById('mcTopBowl').textContent = topBowl ? `${topBowl.name} (${bowlStats[topBowlId].w}W)` : '—';
+        document.getElementById('mcMotm').textContent    = topBat?.name || topBowl?.name || '—';
+
+        overlay.style.display = 'flex';
+    };
+
+    // ── Innings-end handler ──
     const endInnings = () => {
         if (store.state.currentInnings === 1) {
-            // Start innings 2
             store.startInnings2();
-            // Rebuild player selects for the new batting team (teams swapped)
             populateSelects();
-            // Show player select modal for innings 2
             const modal = document.getElementById('playerSelectModal');
             const title = modal?.querySelector('h2');
             if (title) title.textContent = 'Innings 2 — Select Opening Players';
             if (modal) modal.classList.remove('hidden');
             renderScore();
         } else {
-            // Match over — go to summary
-            window.location.href = 'match-summary.html';
+            // Match over — show complete overlay
+            showMatchComplete();
         }
     };
 
@@ -605,6 +693,7 @@ const initLiveScore = () => {
         btn.addEventListener('click', (e) => {
             const runs = parseInt(e.target.dataset.runs);
             const prevBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
+            showCommentary({ runs, isExtra: false, isWicket: false });
             store.recordBall(runs);
             
             // Strike rotation on 1s, 3s, 5s
@@ -631,22 +720,31 @@ const initLiveScore = () => {
 
         document.getElementById('btnWide').addEventListener('click', () => { 
             const prevBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
-            store.recordBall(0, true, 'WD'); checkOverComplete(prevBalls); renderScore(); 
+            showCommentary({ runs: 0, isExtra: true, extraType: 'WD' });
+            store.recordBall(0, true, 'WD'); 
+            checkOverComplete(prevBalls); 
+            renderScore(); 
         });
         document.getElementById('btnNoBall').addEventListener('click', () => { 
             const prevBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
-            store.recordBall(0, true, 'NB'); checkOverComplete(prevBalls); renderScore(); 
+            showCommentary({ runs: 0, isExtra: true, extraType: 'NB' });
+            store.recordBall(0, true, 'NB'); 
+            checkOverComplete(prevBalls); 
+            renderScore(); 
         });
         document.getElementById('btnLegBye').addEventListener('click', () => { 
             const prevBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
-            store.recordBall(1, true, 'LB'); // LB runs typically count for strike rotation. Let's do 1 run for simplicity in this button.
-            if (store.state.striker && store.state.nonStriker) {
+            const r = 1;
+            showCommentary({ runs: r, isExtra: true, extraType: 'LB' });
+            store.recordBall(r, true, 'LB'); 
+            if (r % 2 !== 0 && store.state.striker && store.state.nonStriker) {
                 const temp = store.state.striker;
                 store.state.striker = store.state.nonStriker;
                 store.state.nonStriker = temp;
                 store.save();
             }
-            checkOverComplete(prevBalls); renderScore(); 
+            checkOverComplete(prevBalls); 
+            renderScore(); 
         });
         
         document.getElementById('btnWicket').addEventListener('click', () => { 
@@ -680,10 +778,14 @@ const initLiveScore = () => {
         document.getElementById('confirmWicket').addEventListener('click', () => {
             const wType = document.getElementById('wicketType').value;
             const newBatId = document.getElementById('newBatsman').value;
-            
+
             const prevBalls = store.state.history.filter(b => !b.isExtra || b.extraType === 'LB').length;
-            store.recordBall(0, false, '', true, wType);
-            
+            const isRetire = wType === 'Retired';
+
+            // Retire doesn't count as wicket
+            showCommentary({ isWicket: !isRetire, isExtra: false, runs: 0, wicketType: wType });
+            store.recordBall(0, false, '', !isRetire, wType);
+
             if (newBatId) {
                 store.state.striker = store.state.players.find(p => p.id === newBatId);
                 store.save();
