@@ -335,6 +335,10 @@ const initLiveScore = () => {
         
         if (!strId || !bwId) return alert('Select at least a Striker and Bowler');
         
+        if (strId === bwId) return alert('Striker and Bowler cannot be the same person.');
+        if (nsId && strId === nsId) return alert('Striker and Non-Striker cannot be the same person.');
+        if (nsId && nsId === bwId) return alert('Non-Striker and Bowler cannot be the same person.');
+        
         const getP = id => store.state.players.find(p => p.id === id) || { name: 'Player' };
         
         store.state.striker = getP(strId);
