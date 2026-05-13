@@ -264,7 +264,7 @@ const initToss = () => {
 // LIVE SCORE LOGIC
 // ==========================================
 const initLiveScore = () => {
-    const shareBtn = document.getElementById('shareMatchBtn');
+    const shareBtn = document.getElementById('shareBtn') || document.getElementById('shareMatchBtn');
     if (shareBtn) {
         shareBtn.addEventListener('click', () => {
             const modal = document.getElementById('shareMatchModal');
