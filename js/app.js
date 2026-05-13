@@ -561,6 +561,19 @@ const initMatchSummary = () => {
             </tr>
         `;
     });
+
+    // Render Teams
+    const teamAList = document.getElementById('teamAList');
+    const teamBList = document.getElementById('teamBList');
+    if (teamAList && teamBList) {
+        teamAList.innerHTML = store.state.teamA?.length > 0 ? 
+            store.state.teamA.map(p => `<li style="padding: 5px 0; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${p.name}</li>`).join('') :
+            '<li class="text-muted" style="font-size: 0.9rem;">Not assigned</li>';
+            
+        teamBList.innerHTML = store.state.teamB?.length > 0 ? 
+            store.state.teamB.map(p => `<li style="padding: 5px 0; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${p.name}</li>`).join('') :
+            '<li class="text-muted" style="font-size: 0.9rem;">Not assigned</li>';
+    }
 };
 
 // Initialize App
