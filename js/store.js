@@ -61,11 +61,13 @@ export const store = {
         this.save();
     },
 
-    recordBall(runs, isExtra = false, extraType = '', isWicket = false) {
+    recordBall(runs, isExtra = false, extraType = '', isWicket = false, wicketType = '') {
         this.state.history.push({
-            runs, isExtra, extraType, isWicket, 
+            runs, isExtra, extraType, isWicket, wicketType,
             over: this.state.score.overs,
-            ballNum: this.state.score.balls
+            ballNum: this.state.score.balls,
+            strikerId: this.state.striker?.id,
+            bowlerId: this.state.bowler?.id
         });
         
         if (!isExtra) {

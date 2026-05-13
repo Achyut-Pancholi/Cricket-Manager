@@ -54,9 +54,50 @@
             </div>
 
             <div class="mt-4">
-                <h3 class="mb-4">Full Scorecard</h3>
-                <div id="scorecardContainer">
-                    <div class="loading-spinner"></div>
+                <div class="d-flex justify-between align-center mb-4">
+                    <h3>Scorecard</h3>
+                </div>
+                
+                <h4 class="text-primary mb-2">Batting</h4>
+                <div class="secondary-card mb-4" style="padding: 0;">
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                            <thead>
+                                <tr style="background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                    <th style="padding: 12px 10px;">Batter</th>
+                                    <th style="padding: 12px 10px; text-align:center;">R</th>
+                                    <th style="padding: 12px 10px; text-align:center;">B</th>
+                                    <th style="padding: 12px 10px; text-align:center;">4s</th>
+                                    <th style="padding: 12px 10px; text-align:center;">6s</th>
+                                    <th style="padding: 12px 10px; text-align:center;">SR</th>
+                                </tr>
+                            </thead>
+                            <tbody id="battingStatsBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <h4 class="text-secondary mb-2">Bowling</h4>
+                <div class="secondary-card mb-4" style="padding: 0;">
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                            <thead>
+                                <tr style="background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                    <th style="padding: 12px 10px;">Bowler</th>
+                                    <th style="padding: 12px 10px; text-align:center;">O</th>
+                                    <th style="padding: 12px 10px; text-align:center;">M</th>
+                                    <th style="padding: 12px 10px; text-align:center;">R</th>
+                                    <th style="padding: 12px 10px; text-align:center;">W</th>
+                                    <th style="padding: 12px 10px; text-align:center;">ECO</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bowlingStatsBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             
